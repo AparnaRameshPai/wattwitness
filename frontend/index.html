@@ -138,7 +138,7 @@
 
   <div id="shell" class="transition-[margin] duration-300">
     <!-- ============ ANALYSE ============ -->
-    <main id="analyst" class="mx-auto max-w-4xl px-4 py-8 space-y-6">
+    <main id="analyst" class="mx-auto max-w-6xl px-3 sm:px-4 py-8 space-y-6">
       <section class="grid md:grid-cols-[1.15fr_1fr] gap-10 items-center py-6">
         <div class="space-y-5 text-center md:text-left">
           <span class="chip chip-blue !py-1"><span class="w-1.5 h-1.5 rounded-full bg-lime-500"></span>AI energy auditor · runs on Vultr</span>
@@ -177,6 +177,8 @@
         </div>
       </section>
 
+      <!-- Steps 1 and 2 side by side on wide screens -->
+      <div class="grid lg:grid-cols-2 gap-6 items-stretch">
       <section class="card p-5 sm:p-6">
         <div class="flex items-start gap-3">
           <span class="step-num">1</span>
@@ -201,13 +203,14 @@
           <span class="step-num">2</span>
           <div><h2 class="step-title">Ask a question</h2><p class="text-sm muted">Plain English is fine.</p></div>
         </div>
-        <textarea id="question" rows="2" class="input mt-4" placeholder="e.g. Did the heat pump deliver the guaranteed 40% savings after adjusting for weather?"></textarea>
+        <textarea id="question" rows="3" class="input mt-4" placeholder="e.g. Did the heat pump deliver the guaranteed 40% savings after adjusting for weather?"></textarea>
         <div id="suggestions" class="flex flex-wrap gap-2 mt-3"></div>
         <div class="flex flex-wrap items-center gap-3 mt-5">
           <button id="run" class="btn btn-primary !text-base !px-6 !py-2.5" disabled>Analyse →</button>
           <span id="runHint" class="text-sm muted">Choose data first (step 1).</span>
         </div>
       </section>
+      </div>
 
       <section id="step3" class="card p-5 sm:p-6 hidden scroll-mt-20">
         <div class="flex items-start gap-3">
@@ -250,7 +253,7 @@
     </main>
 
     <!-- ============ TRY TO BREAK IT ============ -->
-    <main id="lab" class="mx-auto max-w-5xl px-4 py-8 space-y-6 hidden">
+    <main id="lab" class="mx-auto max-w-6xl px-3 sm:px-4 py-8 space-y-6 hidden">
       <section class="space-y-3">
         <h1 class="text-3xl font-bold tracking-tight">Try to break it</h1>
         <p class="muted max-w-3xl text-lg">We attack our own system on purpose. Nothing gets out.<span class="info-i" data-tip="Here the safety check that normally screens the AI's code is switched off, so the sandbox alone has to hold. After every attack the server checks itself from the outside: a secret file on the server must be unchanged, and the sandbox engine must still be healthy."></span></p>
