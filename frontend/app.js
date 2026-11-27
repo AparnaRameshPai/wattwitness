@@ -23,9 +23,11 @@ const humanize = (name) => String(name || "").replace(/_/g, " ");
 function setTheme(theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
   localStorage.setItem("theme", theme);
-  $("themeIcon").textContent = theme === "dark" ? "☀️" : "🌙";
+  $("themeIcon").innerHTML = theme === "dark"
+    ? '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
+    : '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
 }
-setTheme(localStorage.getItem("theme") === "dark" ? "dark" : "light");
+setTheme(localStorage.getItem("theme") === "light" ? "light" : "dark");
 $("themeBtn").addEventListener("click", () => setTheme(document.documentElement.classList.contains("dark") ? "light" : "dark"));
 
 // ---------- tabs ----------
@@ -164,7 +166,7 @@ function renderSidebar() {
 function node(icon, title, sub, on, note = "") {
   return `<div class="node ${on ? "node-on" : ""}">
     <div class="flex items-center gap-2"><span class="text-lg">${icon}</span><span class="font-medium text-sm">${title}</span>
-      ${on ? '<span class="ml-auto w-2 h-2 rounded-full bg-blue-500 pulse-dot"></span>' : ""}</div>
+      ${on ? '<span class="ml-auto w-2 h-2 rounded-full bg-lime-400 pulse-dot"></span>' : ""}</div>
     <div class="text-xs muted mt-1">${sub}</div>${note ? `<div class="text-[11px] muted mt-1">${note}</div>` : ""}</div>`;
 }
 
@@ -213,7 +215,7 @@ function renderCost() {
 
 function callRow(c, running) {
   return `<li class="flex items-center gap-2 text-xs">
-    <span class="chip ${running ? "chip-blue" : "chip-gray"} !text-[10px]">${running ? '<span class="w-1.5 h-1.5 rounded-full bg-blue-500 pulse-dot"></span>' : ""}${esc(c.role)}</span>
+    <span class="chip ${running ? "chip-blue" : "chip-gray"} !text-[10px]">${running ? '<span class="w-1.5 h-1.5 rounded-full bg-lime-400 pulse-dot"></span>' : ""}${esc(c.role)}</span>
     <span class="font-mono truncate flex-1">${esc(c.model)}</span>
     ${running ? '<span class="muted">thinking…</span>'
       : `<span class="muted whitespace-nowrap">${tok(c.prompt_tokens)}→${tok(c.completion_tokens)} · ${secs(c.seconds)} · ${usd(c.cost_usd)}</span>`}</li>`;
@@ -540,7 +542,7 @@ function stepItem(step, i) {
   const dur = tm ? `${(((tm.end || Date.now()) - tm.start) / 1000).toFixed(1)}s` : "";
   const dot = {
     pending: `<span class="step-dot border-2 border-slate-200 dark:border-slate-700 text-slate-400">${i + 1}</span>`,
-    active: '<span class="step-dot bg-blue-600"><span class="w-4 h-4 rounded-full border-2 border-white/40 border-t-white spin"></span></span>',
+    active: '<span class="step-dot bg-lime-500"><span class="w-4 h-4 rounded-full border-2 border-white/40 border-t-white spin"></span></span>',
     done: '<span class="step-dot bg-emerald-500 text-white">✓</span>',
     error: '<span class="step-dot bg-red-500 text-white">!</span>',
   }[st];
@@ -587,7 +589,7 @@ function stepDetail(key) {
 
 function memBar(sbx, id) {
   const pct = Math.min(100, (sbx.mem / (sbx.limit || 512)) * 100);
-  const color = pct > 85 ? "bg-red-500" : pct > 60 ? "bg-amber-500" : "bg-blue-500";
+  const color = pct > 85 ? "bg-red-500" : pct > 60 ? "bg-amber-500" : "bg-lime-500";
   return `<div class="mt-2"><div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
       <div class="h-full ${color}" style="width:${pct}%"></div></div>
     <div class="text-[11px] muted mt-0.5 font-mono">${esc(id)} · memory ${sbx.mem} / ${sbx.limit} MB</div></div>`;
@@ -599,7 +601,7 @@ function taskRow(k) {
   return `<div class="rounded-xl border border-slate-200 dark:border-slate-800 px-3 py-2">
     <div class="flex items-center justify-between gap-2">
       <span class="text-sm font-medium truncate">${k.id}. ${esc(k.title)}</span>
-      <span class="chip ${cls}">${k.status === "running" ? '<span class="w-1.5 h-1.5 rounded-full bg-blue-500 pulse-dot"></span>' : ""}${label}</span></div>
+      <span class="chip ${cls}">${k.status === "running" ? '<span class="w-1.5 h-1.5 rounded-full bg-lime-400 pulse-dot"></span>' : ""}${label}</span></div>
     ${sbx ? memBar(sbx, k.live) : ""}
     ${k.notes.slice(-3).map((n) => `<div class="text-xs muted mt-1">${esc(n)}</div>`).join("")}</div>`;
 }
@@ -656,10 +658,10 @@ function renderAnswer() {
       return m ? `<span class="chip ${STATUS_CHIP[m.status]} !whitespace-normal" title="${esc(STATUS_WORD[m.status])}: ${esc(m.description)}">${STATUS_ICON[m.status]} ${esc(humanize(m.name))} = ${num(m.value ?? m.claimed)}</span>` : "";
     }).join("");
     return `<li class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex gap-3 items-start">
-      <span class="grid place-items-center w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-semibold flex-none">${i + 1}</span>
+      <span class="grid place-items-center w-6 h-6 rounded-full bg-lime-500/15 dark:bg-lime-400/10 text-lime-700 dark:text-lime-300 text-xs font-semibold flex-none">${i + 1}</span>
       <div class="flex-1"><p class="leading-relaxed">${esc(s.text)}</p>
         <div class="flex flex-wrap items-center gap-2 mt-2">${chips}
-          <button class="text-xs text-blue-600 dark:text-blue-400 hover:underline" data-proof="${i}">See the proof →</button></div></div></li>`;
+          <button class="text-xs text-lime-700 dark:text-lime-400 hover:underline" data-proof="${i}">See the proof →</button></div></div></li>`;
   }).join("") || `<li class="muted">${run.error ? "The run did not finish." : "No answer was produced."}</li>`;
 
   $("charts").innerHTML = run.order.map((id) => run.tasks[id]).filter((k) => k.chart_b64).map((k) => {
@@ -729,7 +731,7 @@ function metricProof(m) {
     <div class="text-xs muted">${esc(m.description)}</div>
     <div>Reported <b class="font-mono">${num(m.claimed)}</b> · re-computed <b class="font-mono">${num(m.recomputed)}</b> in sandbox
       <span class="font-mono">${esc(m.verifier_sandbox)}</span>${m.tiebreak != null ? ` · tie-break ${num(m.tiebreak)} in <span class="font-mono">${esc(m.tiebreak_sandbox)}</span>` : ""}</div>
-    <details><summary class="cursor-pointer text-sm text-blue-600 dark:text-blue-400">The checker's own code</summary><pre class="code mt-1">${esc(m.verifier_code)}</pre></details></div>`;
+    <details><summary class="cursor-pointer text-sm text-lime-700 dark:text-lime-400">The checker's own code</summary><pre class="code mt-1">${esc(m.verifier_code)}</pre></details></div>`;
 }
 
 function taskProof(k) {
@@ -743,8 +745,8 @@ function taskProof(k) {
       ${a.sandbox_id ? `sandbox <span class="font-mono">${esc(a.sandbox_id)}</span>` : "stopped before running"} · ${a.duration_s ?? 0}s${a.peak_mem_mb ? ` · peak ${a.peak_mem_mb} MB` : ""}</li>`).join("")}</ul>
     ${rp ? `<div class="text-xs">${rp.reproducible ? "🔁 Re-ran identically" : "≠ Re-ran differently"} in <span class="font-mono">${esc(rp.sandbox_id)}</span></div>` : ""}
     ${rv ? `<div class="text-xs">👁 Chart review: ${esc(rv.verdict)}. ${esc(rv.shows)} ${(rv.issues || []).length ? esc(rv.issues.join("; ")) : ""}</div>` : ""}
-    <details open><summary class="cursor-pointer text-sm text-blue-600 dark:text-blue-400">The code</summary><pre class="code mt-1">${esc(k.code)}</pre></details>
-    <details><summary class="cursor-pointer text-sm text-blue-600 dark:text-blue-400">What it printed</summary><pre class="code mt-1">${esc(k.stdout)}</pre></details></div>`;
+    <details open><summary class="cursor-pointer text-sm text-lime-700 dark:text-lime-400">The code</summary><pre class="code mt-1">${esc(k.code)}</pre></details>
+    <details><summary class="cursor-pointer text-sm text-lime-700 dark:text-lime-400">What it printed</summary><pre class="code mt-1">${esc(k.stdout)}</pre></details></div>`;
 }
 
 function showModal(title, body) {
@@ -761,7 +763,7 @@ function openProof(i) {
   if (!s) return;
   const metrics = (s.metrics || []).map((n) => (run.finalMetrics || run.metrics).find((m) => m.name === n)).filter(Boolean);
   showModal("The proof behind this statement",
-    `<blockquote class="border-l-4 border-blue-500 pl-3">${esc(s.text)}</blockquote>${metrics.map(metricProof).join("")}${(s.task_ids || []).map((id) => taskProof(run.tasks[id])).join("")}`);
+    `<blockquote class="border-l-4 border-lime-400 pl-3">${esc(s.text)}</blockquote>${metrics.map(metricProof).join("")}${(s.task_ids || []).map((id) => taskProof(run.tasks[id])).join("")}`);
 }
 
 // ---------- one click handler for everything rendered dynamically ----------
@@ -812,7 +814,7 @@ function laneHtml(id, x) {
   const running = ["starting", "queued", "running"].includes(x.status);
   const mem = running ? x.mem : x.peak || 0;
   const pct = Math.min(100, (mem / (x.limit || 512)) * 100);
-  const color = !running ? (x.status === "oom" ? "bg-red-500" : "bg-slate-400") : pct > 85 ? "bg-red-500" : pct > 60 ? "bg-amber-500" : "bg-blue-500";
+  const color = !running ? (x.status === "oom" ? "bg-red-500" : "bg-slate-400") : pct > 85 ? "bg-red-500" : pct > 60 ? "bg-amber-500" : "bg-lime-500";
   const text = running ? `${x.status === "queued" ? "queued" : "running"} · memory ${mem} / ${x.limit} MB`
     : `${END_WORD[x.status] || x.status} after ${x.duration}s · peak ${x.peak} MB · destroyed`;
   return `<div><div class="text-[11px] font-mono muted">${esc(x.label)} · ${esc(id)}</div>
