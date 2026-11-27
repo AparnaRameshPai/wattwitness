@@ -19,16 +19,88 @@ const STATUS_WORD = { verified: "✓ Confirmed", corrected: "± Corrected", unve
 const STATUS_ICON = { verified: "✓", corrected: "±", unverified: "?" };
 const humanize = (name) => String(name || "").replace(/_/g, " ");
 
-// ---------- theme ----------
-function setTheme(theme) {
+// ---------- theme: light by default; dark only after the visitor picks it (saved as "ww-theme") ----------
+const THEME_ICON = {
+  dark: '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  light: '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+};
+function applyTheme(theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
-  localStorage.setItem("theme", theme);
-  $("themeIcon").innerHTML = theme === "dark"
-    ? '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
-    : '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  $("themeIcon").innerHTML = THEME_ICON[theme];
 }
-setTheme(localStorage.getItem("theme") === "light" ? "light" : "dark");
-$("themeBtn").addEventListener("click", () => setTheme(document.documentElement.classList.contains("dark") ? "light" : "dark"));
+applyTheme(localStorage.getItem("ww-theme") === "dark" ? "dark" : "light");
+$("themeBtn").addEventListener("click", () => {
+  const next = document.documentElement.classList.contains("dark") ? "light" : "dark";
+  localStorage.setItem("ww-theme", next);
+  applyTheme(next);
+});
+
+// ---------- info tooltips: one floating box for every [data-tip] (hover, click or tap, keyboard) ----------
+// The box lives outside every re-rendered area and the listeners are delegated, so live re-renders can't break it.
+const INFO_SVG = '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>';
+const info = (text) => (text ? `<span class="info-i" role="button" tabindex="0" aria-label="More info" data-tip="${esc(text)}">${INFO_SVG}</span>` : "");
+const tip = { box: $("tip"), text: null, pinned: false };
+
+function showTip(el, pinned = false) {
+  const box = tip.box;
+  box.textContent = el.dataset.tip;
+  box.hidden = false;
+  tip.text = el.dataset.tip;
+  tip.pinned = pinned;
+  const r = el.getBoundingClientRect();
+  const b = box.getBoundingClientRect();
+  let top = r.bottom + 8;
+  if (top + b.height > window.innerHeight - 8) top = Math.max(8, r.top - b.height - 8);
+  const left = Math.min(Math.max(8, r.left + r.width / 2 - b.width / 2), window.innerWidth - b.width - 8);
+  box.style.top = `${top}px`;
+  box.style.left = `${Math.max(8, left)}px`;
+}
+function hideTip() {
+  tip.box.hidden = true;
+  tip.text = null;
+  tip.pinned = false;
+}
+// Static ⓘ placeholders written in index.html get their icon here.
+document.querySelectorAll(".info-i:empty").forEach((el) => {
+  el.innerHTML = INFO_SVG;
+  el.setAttribute("role", "button");
+  el.setAttribute("aria-label", "More info");
+  el.tabIndex = 0;
+});
+document.addEventListener("pointerover", (e) => {
+  if (e.pointerType === "touch") return;
+  const el = e.target.closest("[data-tip]");
+  if (el) {
+    if (tip.text !== el.dataset.tip) showTip(el);
+  } else if (!tip.pinned) hideTip();
+});
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-tip]");
+  const icon = Boolean(el?.classList.contains("info-i"));
+  if (icon) {
+    // An ⓘ inside a button, label or summary must not also press that control.
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  if (el && (icon || !el.closest("button, a, summary, label"))) {
+    if (tip.pinned && tip.text === el.dataset.tip) hideTip();
+    else showTip(el, true);
+  } else if (tip.pinned) hideTip();
+}, true);
+document.addEventListener("focusin", (e) => {
+  const el = e.target.closest?.("[data-tip]");
+  if (el) showTip(el);
+});
+document.addEventListener("focusout", () => !tip.pinned && hideTip());
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") hideTip();
+  if ((e.key === "Enter" || e.key === " ") && e.target.classList?.contains("info-i")) {
+    e.preventDefault();
+    showTip(e.target, true);
+  }
+});
+window.addEventListener("scroll", () => tip.text && hideTip(), true);
+window.addEventListener("resize", () => tip.text && hideTip());
 
 // ---------- tabs ----------
 function showTab(name) {
@@ -46,7 +118,10 @@ async function refreshHealth() {
     const ok = h.docker && h.model_configured;
     $("health").className = `chip ${ok ? "chip-green" : "chip-red"} hidden sm:inline-flex`;
     $("health").innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${ok ? "bg-emerald-500" : "bg-red-500"}"></span>` +
-      (ok ? `Live on Vultr · ${h.runtime === "runsc" ? "gVisor" : esc(h.runtime)}` : "Not ready");
+      (ok ? "Live on Vultr" : "Not ready");
+    $("health").dataset.tip = ok
+      ? `The server, the AI models and the sandbox engine are up. Sandboxes run under ${h.runtime === "runsc" ? "gVisor" : h.runtime}, which walls them off from the server.`
+      : "The server is up, but the sandbox engine or the AI models are not ready.";
     $("hostStatus").className = `chip ${h.docker ? "chip-green" : "chip-red"} !text-sm !py-1`;
     $("hostStatus").textContent = h.docker ? "✓ Server healthy · sandbox engine running" : "⚠ Sandbox engine unreachable";
   } catch {
@@ -164,9 +239,8 @@ function renderSidebar() {
 }
 
 function node(icon, title, sub, on, note = "") {
-  const info = note ? `<button type="button" class="shrink-0 text-slate-400 hover:text-lime-500 dark:hover:text-lime-400 cursor-help" title="${esc(note)}" aria-label="${esc(note)}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></button>` : "";
   return `<div class="node ${on ? "node-on" : ""}">
-    <div class="flex items-center gap-2"><span class="seal shrink-0">${icon}</span><span class="font-medium text-sm">${title}</span>${info}
+    <div class="flex items-center gap-2"><span class="seal shrink-0">${icon}</span><span class="font-medium text-sm">${title}</span>${info(note)}
       ${on ? '<span class="ml-auto w-2 h-2 rounded-full bg-lime-400 pulse-dot"></span>' : ""}</div>
     <div class="text-xs muted mt-1">${sub}</div></div>`;
 }
@@ -191,15 +265,18 @@ function renderDiagram() {
     box: '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.5l8 4.3v9.4L12 21l-8-4.8V6.8z"/><path d="M4 7l8 4.3L20 7M12 11.3V21"/></svg>',
   };
   $("diagram").innerHTML =
-    node(ic.browser, "Your browser", "This page. Progress streams in live over HTTPS.", busy) +
-    conn("HTTPS · Caddy + Let's Encrypt", busy) +
-    node(ic.vm, "Vultr Cloud Compute VM", esc(machine || "loading…"), busy,
-      "Runs the orchestrator: plans the work, sends it out, checks the results. Holds the only API key.") +
+    node(ic.browser, "Your browser", "This page, updated live.", busy,
+      "Progress streams in live over a secure HTTPS connection (Caddy web server with a Let's Encrypt certificate).") +
+    conn("secure connection", busy) +
+    node(ic.vm, "Vultr Cloud Compute", esc(machine || "loading…"), busy,
+      "A Vultr virtual machine runs the orchestrator: it plans the work, sends it out and checks the results. It holds the only API key.") +
     `<div class="grid grid-cols-2 gap-3">
-       <div>${conn("API calls", nIn > 0)}${node(ic.cpu, "Vultr Serverless Inference",
-         nIn ? `${plural(nIn, "model call")} running: ${esc(roles.join(", "))}` : "Idle. Called for every AI step.", nIn > 0)}</div>
-       <div>${conn("Docker + gVisor", nSbx > 0)}${node(ic.box, "Sandboxes on the VM",
-         `${nSbx} running · max ${sb.max_parallel ?? "–"} at once`, nSbx > 0, "No network, no secrets, destroyed after each use.")}</div>
+       <div>${conn("AI calls", nIn > 0)}${node(ic.cpu, "Vultr Serverless Inference",
+         nIn ? `${plural(nIn, "AI call")} running: ${esc(roles.join(", "))}` : "Idle", nIn > 0,
+         "Vultr's hosted AI models. Every AI step (plan, write code, fix, check, write the answer) is one call here, paid per token.")}</div>
+       <div>${conn("code runs", nSbx > 0)}${node(ic.box, "Sandboxes",
+         `${nSbx} running · up to ${sb.max_parallel ?? "–"}`, nSbx > 0,
+         "Throwaway Docker containers with gVisor on the same VM: no network, no secrets, deleted after each use.")}</div>
      </div>`;
 }
 
@@ -207,17 +284,16 @@ function renderCost() {
   const total = vultrInfo?.inference?.totals || {};
   const prices = vultrInfo?.inference?.prices_per_million_tokens || {};
   const u = live.run;
+  const priceTip = "Estimated from Vultr's published prices per million tokens:\n" + Object.entries(prices).map(([m, p]) =>
+    `${m}: ${p ? `$${p.input} in · $${p.output} out` : "price n/a"}`).join("\n");
   $("costBox").innerHTML = `
     <div class="grid grid-cols-2 gap-3">
       <div class="node"><div class="text-xs muted">This run</div><div class="text-2xl font-semibold mt-0.5">${usd(u.cost)}</div>
-        <div class="text-xs muted">${plural(u.calls, "model call")} · ${tok(u.prompt + u.completion)} tokens</div></div>
-      <div class="node"><div class="text-xs muted">Since the server started</div><div class="text-2xl font-semibold mt-0.5">${usd(total.cost_usd)}</div>
-        <div class="text-xs muted">${plural(total.calls || 0, "call")} · ${tok((total.prompt_tokens || 0) + (total.completion_tokens || 0))} tokens</div></div>
+        <div class="text-xs muted">${plural(u.calls, "AI call")}</div></div>
+      <div class="node"><div class="text-xs muted">All runs so far</div><div class="text-2xl font-semibold mt-0.5">${usd(total.cost_usd)}</div>
+        <div class="text-xs muted">${plural(total.calls || 0, "AI call")}</div></div>
     </div>
-    <div class="text-xs muted mt-3">Estimated from Vultr's published per-token prices (per 1M tokens):</div>
-    <ul class="text-xs mt-1 space-y-0.5">${Object.entries(prices).map(([m, p]) =>
-      `<li class="flex justify-between gap-2"><span class="font-mono truncate">${esc(m)}</span>
-         <span class="muted whitespace-nowrap">${p ? `$${p.input} in · $${p.output} out` : "price n/a"}</span></li>`).join("")}</ul>`;
+    <div class="text-xs muted mt-2">How is this calculated?${info(priceTip)}</div>`;
 }
 
 function callRow(c, running) {
@@ -273,16 +349,17 @@ function renderInfra() {
 // =====================================================================================================
 // ANALYSE: step 1 (data) and step 2 (question)
 // =====================================================================================================
+// label = the short chip text; text = the full question it fills in.
 const DEMO_QUESTIONS = [
-  "The heat pump was installed 1-14 March 2025 and the contractor guaranteed 40% lower electricity use. Was the guarantee met after adjusting for weather, and how much was saved in kWh and SEK?",
-  "How much of the drop in electricity use is due to the milder winter rather than the heat pump?",
-  "How does daily electricity use depend on outdoor temperature, before and after the retrofit?",
-  "Are there days with missing or unusual meter readings?",
+  { label: "Was the 40% guarantee met?", text: "The heat pump was installed 1-14 March 2025 and the contractor guaranteed 40% lower electricity use. Was the guarantee met after adjusting for weather, and how much was saved in kWh and SEK?" },
+  { label: "How much was the weather?", text: "How much of the drop in electricity use is due to the milder winter rather than the heat pump?" },
+  { label: "Use vs. temperature", text: "How does daily electricity use depend on outdoor temperature, before and after the retrofit?" },
+  { label: "Missing readings?", text: "Are there days with missing or unusual meter readings?" },
 ];
 const GENERIC_QUESTIONS = [
-  "Give me a short overview of this dataset.",
-  "What are the most important trends in this data?",
-  "Which columns have missing values, and how many?",
+  { label: "Quick overview", text: "Give me a short overview of this dataset." },
+  { label: "Main trends", text: "What are the most important trends in this data?" },
+  { label: "Missing values?", text: "Which columns have missing values, and how many?" },
 ];
 let dataset = null;
 let run = null;
@@ -299,7 +376,7 @@ async function chooseDataset(resp, demo) {
   $("pickUpload").classList.toggle("tile-on", !demo);
   $("datasetInfo").innerHTML = `<span class="chip chip-green">✓ Ready</span><span class="font-mono">${esc(d.filename)}</span><span class="muted">· ${esc(d.size_kb)} KB</span>`;
   renderSuggestions();
-  if (demo && !$("question").value.trim()) $("question").value = DEMO_QUESTIONS[0];
+  if (demo && !$("question").value.trim()) $("question").value = DEMO_QUESTIONS[0].text;
   updateRunButton();
 }
 $("pickDemo").addEventListener("click", async () => chooseDataset(await fetch("/api/datasets/demo", { method: "POST" }), true));
@@ -316,7 +393,7 @@ function suggestionList() {
 }
 function renderSuggestions() {
   $("suggestions").innerHTML = '<span class="text-xs muted self-center">Try:</span>' +
-    suggestionList().map((q, i) => `<button class="suggest" data-suggest="${i}">${esc(q)}</button>`).join("");
+    suggestionList().map((q, i) => `<button class="suggest" data-suggest="${i}" data-tip="${esc(q.text)}">${esc(q.label)}</button>`).join("");
 }
 renderSuggestions();
 $("question").addEventListener("input", updateRunButton);
@@ -332,12 +409,18 @@ function updateRunButton() {
 // ANALYSE: step 3 (watch it work)
 // =====================================================================================================
 const STEPS = [
-  { key: "profile", title: "Read your data", idle: "Open the file inside a sandbox and learn its columns." },
-  { key: "plan", title: "Plan the analysis", idle: "Split the question into small tasks that can run side by side." },
-  { key: "execute", title: "Write and run the code", idle: "The AI writes Python. Each task runs in its own throwaway sandbox." },
-  { key: "assure", title: "Double-check everything", idle: "Recompute each key number independently, re-run every task, review the charts." },
-  { key: "write", title: "Write the answer", idle: "Using only facts that passed the checks." },
-  { key: "seal", title: "Sign the receipt", idle: "Seal the whole run with a digital signature anyone can verify." },
+  { key: "profile", title: "Read your data", idle: "Open the file safely.",
+    tip: "The file is opened inside a sandbox, never by the server. The AI only sees the column names and 5 sample rows." },
+  { key: "plan", title: "Plan the analysis", idle: "Split into small tasks.",
+    tip: "The AI splits the question into 1–4 independent tasks that can run side by side." },
+  { key: "execute", title: "Write and run the code", idle: "Each task in its own sandbox.",
+    tip: "The AI writes Python code. A safety check screens it, then each task runs in its own throwaway sandbox. If the code fails, the AI reads the error and fixes it (up to 3 tries)." },
+  { key: "assure", title: "Double-check everything", idle: "Recompute, re-run, review.",
+    tip: "A second AI recomputes every key number without seeing the first one's code. Every task is re-run in a fresh sandbox and must give the identical result. A vision model reviews each chart." },
+  { key: "write", title: "Write the answer", idle: "Only from checked facts.",
+    tip: "The answer may only use numbers that passed the checks." },
+  { key: "seal", title: "Sign the receipt", idle: "Sealed so anyone can verify it.",
+    tip: "The whole run is signed with a digital signature (Ed25519). Change one character and the signature breaks." },
 ];
 const STEP_KEYS = STEPS.map((s) => s.key);
 const TASK_CHIP = {
@@ -535,7 +618,7 @@ function renderSteps() {
   $("stepper").innerHTML = STEPS.map(stepItem).join("");
   const all = Object.values(run.sbx);
   const destroyed = all.filter((x) => x.done).length;
-  $("fleetLine").textContent = `📦 ${plural(all.length, "sandbox")} started · ${destroyed} destroyed · ${all.length - destroyed} running`.replace("sandboxs", "sandboxes");
+  $("fleetLine").textContent = `${all.length} sandbox${all.length === 1 ? "" : "es"} used · ${all.length - destroyed} running now`;
   const current = STEPS.find((s) => s.key === run.stage);
   $("progressLine").innerHTML = run.error
     ? `<span class="text-red-600 dark:text-red-400">${esc(run.error.message)}${run.error.detail ? `: ${esc(String(run.error.detail).slice(0, 200))}` : ""}</span>`
@@ -559,7 +642,7 @@ function stepItem(step, i) {
     <div class="flex flex-col items-center">${dot}${line}</div>
     <div class="flex-1 min-w-0 pb-5">
       <div class="flex items-baseline justify-between gap-3">
-        <span class="font-medium ${st === "pending" ? "muted" : ""}">${step.title}</span><span class="text-xs font-mono muted">${dur}</span></div>
+        <span class="font-medium ${st === "pending" ? "muted" : ""}">${step.title}${info(step.tip)}</span><span class="text-xs font-mono muted">${dur}</span></div>
       <div class="text-sm muted">${st === "pending" ? step.idle : stepDetail(step.key)}</div>
       ${st === "pending" ? "" : stepExtra(step.key)}
     </div></li>`;
@@ -569,26 +652,24 @@ function stepDetail(key) {
   const tasks = run.order.map((id) => run.tasks[id]);
   switch (key) {
     case "profile":
-      return run.profile
-        ? `Read ${run.profile.rows.toLocaleString()} rows × ${run.profile.columns.length} columns inside a sandbox. Only the column names and 5 sample rows are shown to the AI.`
-        : "Opening the file inside a sandbox…";
+      return run.profile ? `Read ${run.profile.rows.toLocaleString()} rows inside a sandbox.` : "Opening the file inside a sandbox…";
     case "plan":
-      return tasks.length ? `Split your question into ${plural(tasks.length, "independent task")}.` : "Working out how to answer…";
+      return tasks.length ? `Split into ${plural(tasks.length, "task")}.` : "Working out how to answer…";
     case "execute": {
       const done = tasks.filter((x) => x.status === "done").length;
-      return `${done} of ${tasks.length} tasks finished` +
-        (run.healed ? ` · fixed itself ${plural(run.healed, "time")} after an error` : "") +
-        (run.blocked ? ` · ${plural(run.blocked, "unsafe or broken attempt")} stopped before running` : "") + ".";
+      return `${done} of ${tasks.length} tasks done` +
+        (run.healed ? ` · fixed ${plural(run.healed, "error")} by itself` : "") +
+        (run.blocked ? ` · ${plural(run.blocked, "unsafe attempt")} stopped` : "") + ".";
     }
     case "assure": {
       const a = run.assure || {};
-      return `${run.metrics.length} of ${a.numbers ?? "?"} numbers re-computed independently · ` +
-        `${Object.keys(run.replays).length} of ${a.replays ?? "?"} tasks re-run · ${Object.keys(run.reviews).length} of ${a.charts ?? "?"} charts reviewed.`;
+      return `${run.metrics.length}/${a.numbers ?? "?"} numbers re-checked · ${Object.keys(run.replays).length}/${a.replays ?? "?"} tasks re-run · ` +
+        `${Object.keys(run.reviews).length}/${a.charts ?? "?"} charts reviewed.`;
     }
     case "write":
       return run.report ? "Answer written from checked facts only." : "Writing the answer from checked facts only…";
     case "seal":
-      return run.sealed ? `Signed with key ${esc(run.sealed.key_fingerprint)}. Change one character and the signature breaks.` : "Signing…";
+      return run.sealed ? "Signed. Anyone can verify it." : "Signing…";
     default:
       return "";
   }
@@ -597,9 +678,8 @@ function stepDetail(key) {
 function memBar(sbx, id) {
   const pct = Math.min(100, (sbx.mem / (sbx.limit || 512)) * 100);
   const color = pct > 85 ? "bg-red-500" : pct > 60 ? "bg-amber-500" : "bg-lime-500";
-  return `<div class="mt-2"><div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-      <div class="h-full ${color}" style="width:${pct}%"></div></div>
-    <div class="text-[11px] muted mt-0.5 font-mono">${esc(id)} · memory ${sbx.mem} / ${sbx.limit} MB</div></div>`;
+  return `<div class="mt-2 py-1" data-tip="Sandbox ${esc(id)}: memory ${sbx.mem} of ${sbx.limit} MB"><div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+      <div class="h-full ${color}" style="width:${pct}%"></div></div></div>`;
 }
 
 function taskRow(k) {
@@ -610,7 +690,7 @@ function taskRow(k) {
       <span class="text-sm font-medium truncate">${k.id}. ${esc(k.title)}</span>
       <span class="chip ${cls}">${k.status === "running" ? '<span class="w-1.5 h-1.5 rounded-full bg-lime-400 pulse-dot"></span>' : ""}${label}</span></div>
     ${sbx ? memBar(sbx, k.live) : ""}
-    ${k.notes.slice(-3).map((n) => `<div class="text-xs muted mt-1">${esc(n)}</div>`).join("")}</div>`;
+    ${k.notes.slice(-2).map((n) => `<div class="text-xs muted mt-1">${esc(n)}</div>`).join("")}</div>`;
 }
 
 function stepExtra(key) {
@@ -618,19 +698,22 @@ function stepExtra(key) {
     return `<div class="mt-2 space-y-2">${run.order.map((id) => taskRow(run.tasks[id])).join("")}</div>`;
   }
   if (key === "assure") {
+    const ok = run.metrics.filter((m) => m.status !== "unverified").length;
+    const reps = Object.values(run.replays);
+    const revs = Object.values(run.reviews);
+    const repOk = reps.filter((r) => r.reproducible).length;
+    const revOk = revs.filter((r) => r.verdict === "good").length;
     const chips = [
-      ...run.metrics.map((m) => `<span class="chip ${STATUS_CHIP[m.status]}" title="${esc(m.description)}">${STATUS_WORD[m.status]}: ${esc(m.name)}</span>`),
-      ...Object.values(run.replays).map((r) => `<span class="chip ${r.reproducible ? "chip-green" : "chip-red"}">${MINI.replay} Task ${r.task_id} ${r.reproducible ? "re-ran identically" : "re-ran differently"}</span>`),
-      ...Object.values(run.reviews).map((r) => `<span class="chip ${r.verdict === "good" ? "chip-green" : "chip-amber"}">${MINI.eye} Chart ${r.task_id} ${r.verdict === "good" ? "looks right" : "has issues"}</span>`),
-    ];
+      run.metrics.length ? `<span class="chip ${ok === run.metrics.length ? "chip-green" : "chip-amber"}" data-tip="${esc(run.metrics.map((m) => `${STATUS_WORD[m.status]}: ${humanize(m.name)}`).join("\n"))}">${MINI.check} ${ok}/${run.metrics.length} numbers confirmed</span>` : "",
+      reps.length ? `<span class="chip ${repOk === reps.length ? "chip-green" : "chip-red"}">${MINI.replay} ${repOk}/${reps.length} re-runs identical</span>` : "",
+      revs.length ? `<span class="chip ${revOk === revs.length ? "chip-green" : "chip-amber"}" data-tip="${esc(revs.map((r) => r.verdict === "good" ? `Chart ${r.task_id}: looks right` : `Chart ${r.task_id}: ${(r.issues || []).join("; ")}`).join("\n"))}">${MINI.eye} ${revOk}/${revs.length} charts look right</span>` : "",
+    ].filter(Boolean);
     return chips.length ? `<div class="mt-2 flex flex-wrap gap-1.5">${chips.join("")}</div>` : "";
   }
   return "";
 }
 
-// =====================================================================================================
-// ANALYSE: step 4 (the answer)
-// =====================================================================================================
+// ---------- ANALYSE: step 4 (the answer) ----------
 // Small inline icons that inherit the chip's text colour (currentColor), so they tint with each chip.
 const MINI = {
   check: '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 6.5"/></svg>',
@@ -640,8 +723,8 @@ const MINI = {
   bolt: '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>',
   seal: '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.5" r="5"/><path d="M8.5 13.5l-1 7 4.5-2.2 4.5 2.2-1-7"/></svg>',
 };
-function badge(tone, text, title = "") {
-  return `<span class="chip ${tone} !text-sm !px-3 !py-1" title="${esc(title)}">${text}</span>`;
+function badge(tone, text, tipText = "") {
+  return `<span class="chip ${tone} !text-sm !px-3 !py-1"${tipText ? ` data-tip="${esc(tipText)}"` : ""}>${text}</span>`;
 }
 
 function renderAnswer() {
@@ -655,53 +738,59 @@ function renderAnswer() {
   const revs = Object.values(run.reviews);
   const revOk = revs.filter((x) => x.verdict === "good").length;
   const nSbx = Object.keys(run.sbx).length;
+  const more = [
+    revs.length ? `Charts that passed the vision check: ${revOk} of ${revs.length}` : "",
+    `Sandboxes used: ${nSbx}, all deleted afterwards`,
+    run.calls ? `AI calls to Vultr Serverless Inference: ${run.calls}` : "",
+  ].filter(Boolean);
 
   $("badges").innerHTML = [
-    total ? badge(confirmed === total ? "chip-green" : "chip-amber", `${MINI.check} ${confirmed}/${total} key numbers independently confirmed${corrected ? ` (${corrected} corrected)` : ""}`,
+    total ? badge(confirmed === total ? "chip-green" : "chip-amber", `${MINI.check} ${confirmed}/${total} key numbers double-checked${corrected ? ` (${corrected} corrected)` : ""}`,
       "A second AI, which never saw the original code, recomputed each number in a fresh sandbox.") : "",
-    reps.length ? badge(repOk === reps.length ? "chip-green" : "chip-amber", `${MINI.replay} ${repOk}/${reps.length} results reproduced exactly`,
+    reps.length ? badge(repOk === reps.length ? "chip-green" : "chip-amber", `${MINI.replay} ${repOk}/${reps.length} results reproduced`,
       "Each task was run again in a brand-new sandbox. The output had to be identical.") : "",
-    revs.length ? badge(revOk === revs.length ? "chip-green" : "chip-amber", `${MINI.eye} ${revOk}/${revs.length} charts passed review`,
-      "A vision model looked at each chart for mistakes or misleading axes.") : "",
-    badge("chip-gray", `${MINI.box} ${nSbx} sandboxes used, all destroyed`),
-    run.cost ? badge("chip-blue", `${MINI.bolt} ${usd(run.cost)} of AI on Vultr`, `${run.calls} calls to Vultr Serverless Inference`) : "",
-    run.sealed ? badge("chip-gray", `${MINI.seal} Signed receipt`) : "",
+    run.cost ? badge("chip-blue", `${MINI.bolt} ${usd(run.cost)} of AI on Vultr`, `${run.calls} calls to Vultr Serverless Inference, priced at Vultr's published per-token rates.`) : "",
+    run.sealed ? badge("chip-gray", `${MINI.seal} Signed receipt`, "The whole run is sealed with a digital signature. Download it with the button above.") : "",
+    badge("chip-gray", `+${more.length} more`, more.join("\n")),
   ].join("");
 
+  const WORD = { verified: "double-checked", corrected: "corrected by the check", unverified: "not confirmed" };
   $("answer").innerHTML = (r.summary || []).map((s, i) => {
-    const chips = (s.metrics || []).map((name) => {
-      const m = metrics.find((x) => x.name === name);
-      return m ? `<span class="chip ${STATUS_CHIP[m.status]} !whitespace-normal" title="${esc(STATUS_WORD[m.status])}: ${esc(m.description)}">${STATUS_ICON[m.status]} ${esc(humanize(m.name))} = ${num(m.value ?? m.claimed)}</span>` : "";
-    }).join("");
+    const used = (s.metrics || []).map((name) => metrics.find((x) => x.name === name)).filter(Boolean);
+    const worst = used.some((m) => m.status === "unverified") ? "unverified" : used.some((m) => m.status === "corrected") ? "corrected" : "verified";
+    const chip = used.length ? `<span class="chip ${STATUS_CHIP[worst]}" data-tip="${esc(used.map((m) =>
+      `${STATUS_WORD[m.status]}: ${humanize(m.name)} = ${num(m.value ?? m.claimed)}`).join("\n"))}">${STATUS_ICON[worst]} ${used.length === 1 ? "Number" : `${used.length} numbers`} ${WORD[worst]}</span>` : "";
     return `<li class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex gap-3 items-start">
       <span class="grid place-items-center w-6 h-6 rounded-full bg-lime-500/15 dark:bg-lime-400/10 text-lime-700 dark:text-lime-300 text-xs font-semibold flex-none">${i + 1}</span>
       <div class="flex-1"><p class="leading-relaxed">${esc(s.text)}</p>
-        <div class="flex flex-wrap items-center gap-2 mt-2">${chips}
+        <div class="flex flex-wrap items-center gap-2 mt-2">${chip}
           <button class="text-xs text-lime-700 dark:text-lime-400 hover:underline" data-proof="${i}">See the proof →</button></div></div></li>`;
   }).join("") || `<li class="muted">${run.error ? "The run did not finish." : "No answer was produced."}</li>`;
 
   $("charts").innerHTML = run.order.map((id) => run.tasks[id]).filter((k) => k.chart_b64).map((k) => {
     const rv = run.reviews[k.id];
-    const review = rv ? `<div class="mt-2 text-xs rounded-lg px-2 py-1 ${rv.verdict === "good" ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300" : "bg-amber-50 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200"}">
-        👁 Vision check: ${rv.verdict === "good" ? "looks right" : esc((rv.issues || []).join("; "))}</div>` : "";
+    const review = rv ? `<span class="chip ${rv.verdict === "good" ? "chip-green" : "chip-amber"} mt-2" data-tip="${esc(rv.verdict === "good"
+      ? (rv.shows || "The vision model found no problems.") : (rv.issues || []).join("\n"))}">${MINI.eye} Chart checked: ${rv.verdict === "good" ? "looks right" : "has notes"}</span>` : "";
     return `<figure class="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-      <button class="block w-full bg-white" data-task-proof="${k.id}" title="How this chart was made"><img src="data:image/png;base64,${k.chart_b64}" alt="${esc(k.title)}" class="w-full" /></button>
-      <figcaption class="p-3 text-sm"><div class="font-medium">${esc(k.title)}</div>
-        <div class="text-xs muted mt-0.5">Drawn by code that ran in sandbox <span class="font-mono">${esc(k.sandbox_id)}</span></div>${review}</figcaption></figure>`;
+      <button class="block w-full bg-white" data-task-proof="${k.id}" aria-label="How this chart was made"><img src="data:image/png;base64,${k.chart_b64}" alt="${esc(k.title)}" class="w-full" /></button>
+      <figcaption class="p-3 text-sm"><div class="font-medium">${esc(k.title)}${info(`Drawn by code that ran in sandbox ${k.sandbox_id}. Click the chart to see that code.`)}</div>${review}</figcaption></figure>`;
   }).join("");
 
+  const nA = (r.assumptions || []).length;
+  const nC = (r.caveats || []).length;
   $("assumptions").innerHTML = (r.assumptions || []).map((a) => `<li>${esc(a)}</li>`).join("");
   $("caveats").innerHTML = (r.caveats || []).map((a) => `<li>${esc(a)}</li>`).join("");
-  $("caveatsTitle").classList.toggle("hidden", !(r.caveats || []).length);
-  $("assumptionsBox").classList.toggle("hidden", !(r.assumptions || []).length && !(r.caveats || []).length);
+  $("caveatsTitle").classList.toggle("hidden", !nC);
+  $("assumptionsTitle").textContent = `What this answer assumes (${nA})${nC ? ` and ${plural(nC, "caveat")}` : ""}`;
+  $("assumptionsBox").classList.toggle("hidden", !nA && !nC);
 
   $("work").innerHTML = workHtml(metrics);
 
   $("receiptBtn").classList.toggle("hidden", !run.sealed);
-  $("sealLine").classList.toggle("hidden", !run.sealed);
+  $("receiptInfo").classList.toggle("hidden", !run.sealed);
   if (run.sealed) {
     $("receiptBtn").href = run.sealed.download;
-    $("sealLine").textContent = `🔏 Signed with Ed25519 · key ${run.sealed.key_fingerprint} · signature ${run.sealed.signature} · run ${run.sealed.run_id}`;
+    $("receiptInfo").dataset.tip = `Signed with Ed25519.\nKey: ${run.sealed.key_fingerprint}\nRun: ${run.sealed.run_id}\nAnyone can check it with the server's public key (see "Show the work").`;
   }
 }
 
@@ -788,7 +877,7 @@ document.addEventListener("click", (e) => {
   if (el?.dataset.proof !== undefined) return openProof(+el.dataset.proof);
   if (el?.dataset.taskProof !== undefined) return showModal("How this chart was made", taskProof(run?.tasks[+el.dataset.taskProof]));
   if (el?.dataset.suggest !== undefined) {
-    $("question").value = suggestionList()[+el.dataset.suggest];
+    $("question").value = suggestionList()[+el.dataset.suggest].text;
     return updateRunButton();
   }
   if (el?.dataset.usage !== undefined) {
@@ -893,9 +982,10 @@ function launchAttack(id, url = `/api/attacks/${id}/run`) {
       verdict.textContent = ev.contained ? "Contained ✓" : "Check ⚠";
       const r = q(".result");
       r.className = `result rounded-xl p-3 text-sm ${ev.contained ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200"}`;
-      r.innerHTML = `<div class="font-medium">${ev.contained ? "Contained." : "Needs a look."}</div><div class="mt-0.5">${esc(ev.stopped_by)}</div>
-        <div class="text-xs mt-1.5 opacity-80">Checked from outside: server file unchanged ${ev.host_canary_intact ? "✓" : "✗"} · sandbox engine healthy ${ev.host_healthy ? "✓" : "✗"}${
-          ev.leftovers_clean === undefined ? "" : ` · nothing left behind ${ev.leftovers_clean ? "✓" : "✗"} · API key never seen ${ev.key_leaked ? "✗" : "✓"}`}</div>`;
+      const checks = [`Server file unchanged ${ev.host_canary_intact ? "✓" : "✗"}`, `Sandbox engine healthy ${ev.host_healthy ? "✓" : "✗"}`,
+        ...(ev.leftovers_clean === undefined ? [] : [`Nothing left behind ${ev.leftovers_clean ? "✓" : "✗"}`, `API key never seen ${ev.key_leaked ? "✗" : "✓"}`])];
+      r.innerHTML = `<div class="font-medium">${ev.contained ? "Contained. Nothing got out." : "Needs a look."}${info(`How it was stopped: ${ev.stopped_by}`)}</div>
+        <div class="text-xs mt-1 opacity-80">Checked from outside the sandbox ${checks.every((c) => c.endsWith("✓")) ? "✓" : "✗"}${info(checks.join("\n"))}</div>`;
     } else if (ev.type === "error") {
       q(".progress").insertAdjacentHTML("beforeend", `<div class="text-red-600">Error: ${esc(ev.message)}</div>`);
     } else if (ev.type === "done") {
@@ -943,7 +1033,7 @@ $("byoRun").addEventListener("click", async () => {
 $("redteam").addEventListener("click", () => {
   const box = $("redteamOut");
   box.innerHTML = "";
-  $("redteamSummary").innerHTML = '<span class="muted">Red-team agent generating exploit code…</span>';
+  $("redteamSummary").innerHTML = '<span class="muted">The AI is writing its attacks…</span>';
   $("redteam").disabled = true;
   resetLive();
   const lanes = {};
@@ -952,8 +1042,8 @@ $("redteam").addEventListener("click", () => {
     if (!c) {
       c = document.createElement("div");
       c.id = `rt-${g}`;
-      c.className = "rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2";
-      c.innerHTML = '<div class="goal font-medium"></div><div class="state text-xs muted">Generating exploit…</div><div class="lanes space-y-2"></div><div class="body space-y-2"></div>';
+      c.className = "rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2 min-w-0 break-words";
+      c.innerHTML = '<div class="goal font-medium"></div><div class="state text-xs muted">Writing an attack…</div><div class="lanes space-y-2"></div><div class="body space-y-2"></div>';
       box.appendChild(c);
       lanes[g] = {};
     }
@@ -988,16 +1078,18 @@ $("redteam").addEventListener("click", () => {
     } else if (ev.type === "redteam_result") {
       const c = card(ev.goal_id);
       c.querySelector(".state").innerHTML = `<span class="chip chip-green">Contained ✓</span> <span class="muted">sandbox ${esc(END_WORD[ev.status] || ev.status)}</span>`;
-      c.querySelector(".body").insertAdjacentHTML("beforeend", `<div class="text-xs">${ev.claimed_success
-        ? `🤖 The AI claims: “${esc(ev.evidence)}”. <span class="muted">Anything it reached was inside its own throwaway sandbox.</span>`
-        : "🤖 The AI admits the attack failed."}</div>
+      c.querySelector(".body").insertAdjacentHTML("beforeend", `${ev.claimed_success
+        ? `<details class="text-xs"><summary class="cursor-pointer">The AI claims it got something<span class="muted">, but only inside its own throwaway sandbox</span></summary>
+            <div class="mt-1 break-all">“${esc(ev.evidence)}”</div></details>`
+        : '<div class="text-xs">The AI admits the attack failed.</div>'}
         <details><summary class="cursor-pointer text-xs muted">What the sandbox printed</summary><pre class="code mt-1">${esc((ev.stdout || ev.stderr || "").trim().slice(-1500))}</pre></details>`);
     } else if (ev.type === "redteam_summary") {
       const ok = ev.contained;
       $("redteamSummary").innerHTML = `<div class="rounded-xl p-4 ${ok ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200"}">
         <div class="font-semibold">${ok ? "All contained." : "Check the results."} ${plural(ev.attacks, "AI-written attack")} ran${ev.declined ? ` (${ev.declined} declined by the model)` : ""}.</div>
-        <div class="text-sm mt-1">Checked from outside: API key never seen ${ev.key_leaked ? "✗" : "✓"} · server file unchanged ${ev.host_canary_intact ? "✓" : "✗"} ·
-          sandbox engine healthy ${ev.host_healthy ? "✓" : "✗"} · nothing left behind in a fresh sandbox ${ev.leftovers_in_fresh_sandbox ? "✗" : "✓"}</div></div>`;
+        <div class="text-sm mt-1">Checked from outside the sandbox ${ok ? "✓" : "✗"}${info([`API key never seen ${ev.key_leaked ? "✗" : "✓"}`,
+          `Server file unchanged ${ev.host_canary_intact ? "✓" : "✗"}`, `Sandbox engine healthy ${ev.host_healthy ? "✓" : "✗"}`,
+          `Nothing left behind in a fresh sandbox ${ev.leftovers_in_fresh_sandbox ? "✗" : "✓"}`].join("\n"))}</div></div>`;
     } else if (ev.type === "error") {
       $("redteamSummary").innerHTML = `<span class="text-red-600">Error: ${esc(ev.message)} ${esc(ev.detail)}</span>`;
     } else if (ev.type === "done") {

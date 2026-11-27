@@ -147,7 +147,7 @@ ssh root@<VM-IP> 'bash -s' < deploy/bootstrap_vm.sh
 ssh receipts@<VM-IP> 'sudo bash -s -- --harden' < deploy/bootstrap_vm.sh
 # 1. Store the inference key in /etc/agent/inference.env (the script prints a no-echo one-liner for this)
 # 2. As the receipts user on the VM:
-git clone https://github.com/AparnaRameshPai/vultr-hackathon-reciepts.git receipts && cd receipts
+git clone https://github.com/AparnaRameshPai/wattwitness.git receipts && cd receipts
 cp .env.example .env && nano .env                    # models, SANDBOX_RUNTIME=runsc (no key here)
 sudo bash deploy/setup_vm.sh <VM-IP-with-dashes>.sslip.io   # Docker, gVisor, venv, image, systemd, Caddy HTTPS
 python3 scripts/smoke_e2e.py https://<VM-IP-with-dashes>.sslip.io --redteam   # end-to-end demo check

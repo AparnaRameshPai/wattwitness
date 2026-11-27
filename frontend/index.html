@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WattWitness · verified energy savings on Vultr</title>
   <script>
-    // Ink (dark) theme by default; honour a saved light choice before the first paint.
-    if (localStorage.getItem("theme") !== "light") document.documentElement.classList.add("dark");
+    // Light theme by default; dark only if the visitor picked it with the toggle (saved as "ww-theme").
+    if (localStorage.getItem("ww-theme") === "dark") document.documentElement.classList.add("dark");
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,7 +42,8 @@
       .tab-on { @apply bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-700; }
       .code { @apply bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs overflow-auto max-h-80 font-mono; }
       .suggest { @apply rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1 text-xs text-left hover:border-lime-400 hover:text-lime-700 dark:hover:text-lime-300 transition; }
-      .seal { @apply text-lime-500 dark:text-lime-400; }
+      .seal { @apply text-lime-600 dark:text-lime-400; }
+      .info-i { @apply inline-grid place-items-center align-middle w-4 h-4 ml-1 rounded-full text-slate-400 hover:text-lime-600 dark:hover:text-lime-400 cursor-help shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400; }
     }
   </style>
   <style>
@@ -56,6 +57,12 @@
     .conn-on { background: repeating-linear-gradient(to bottom, #a3e635 0 6px, transparent 6px 10px) !important;
                background-size: 2px 10px !important; animation: flow 0.6s linear infinite; }
     @keyframes flow { to { background-position: 0 10px; } }
+    /* The one floating tooltip for every [data-tip] (filled and placed by app.js). */
+    #tip { position: fixed; z-index: 70; max-width: 19rem; padding: 0.55rem 0.75rem; border-radius: 0.65rem; font-size: 12.5px;
+           line-height: 1.45; white-space: pre-line; background: #fff; color: #334155; border: 1px solid #e2e8f0;
+           box-shadow: 0 12px 32px -12px rgba(15, 23, 42, 0.35); pointer-events: none; }
+    .dark #tip { background: #0f172a; color: #cbd5e1; border-color: #334155; }
+    #tip[hidden] { display: none; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased overflow-x-hidden">
@@ -86,7 +93,7 @@
         <button id="themeBtn" class="btn btn-ghost !px-2.5" title="Switch light / dark"><span id="themeIcon" class="grid place-items-center w-4 h-4"></span></button>
         <button id="vultrBtn" class="btn btn-primary">
           <span id="vultrDot" class="w-2 h-2 rounded-full bg-white/60"></span>
-          <span class="hidden sm:inline">How Vultr powers this</span><span class="sm:hidden">Vultr</span>
+          <span class="hidden sm:inline">Vultr Dashboard</span><span class="sm:hidden">Vultr</span>
         </button>
       </div>
     </div>
@@ -95,34 +102,32 @@
   <div id="shell" class="transition-[margin] duration-300">
     <!-- ============ ANALYSE ============ -->
     <main id="analyst" class="mx-auto max-w-4xl px-4 py-8 space-y-6">
-      <section class="text-center space-y-5 py-4">
-        <span class="chip chip-blue !py-1"><span class="w-1.5 h-1.5 rounded-full bg-lime-400"></span>Weather-adjusted · IPMVP · cryptographically signed</span>
-        <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05]">The upgrade promised lower bills.<br class="hidden sm:block" />
-          Did it deliver? <span class="text-lime-500 dark:text-lime-400">Prove it.</span></h1>
-        <p class="muted max-w-2xl mx-auto text-base">A building gets a retrofit — a heat pump, new insulation, smarter
-          controls — sold on a promised cut in electricity. But a milder winter can fake that saving. WattWitness settles
-          it: upload the meter data, and it measures the real, weather-adjusted saving the way an energy auditor would,
-          re-checks every number independently, and signs a result the owner and the contractor can both trust.</p>
-        <div class="flex flex-wrap justify-center gap-x-7 gap-y-2 pt-1 text-sm font-medium">
-          <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l8 4.3v9.4L12 21l-8-4.8V6.8z"/><path d="M4 7l8 4.3L20 7M12 11.3V21"/></svg>Isolated sandboxes</span>
-          <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>Every key number re-checked</span>
-          <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.5" r="5.5"/><path d="M8.5 14l-1 7 4.5-2.3L16.5 21l-1-7"/></svg>Signed, tamper-proof receipt</span>
+      <section class="text-center space-y-5 py-6">
+        <span class="chip chip-blue !py-1"><span class="w-1.5 h-1.5 rounded-full bg-lime-500"></span>AI energy auditor · on Vultr</span>
+        <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.08]">Promised savings?<br />
+          <span class="text-lime-600 dark:text-lime-400">Check if you got them.</span></h1>
+        <p class="muted max-w-xl mx-auto text-lg">Upload your building's meter data. Get a weather-corrected answer in about
+          a minute, double-checked and signed.</p>
+        <div class="flex flex-wrap justify-center gap-x-8 gap-y-2 pt-1 text-sm font-medium">
+          <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l8 4.3v9.4L12 21l-8-4.8V6.8z"/><path d="M4 7l8 4.3L20 7M12 11.3V21"/></svg>Safe<span class="info-i" data-tip="The AI's code runs in a locked, throwaway sandbox on Vultr: no internet, no passwords or keys, and it is deleted right after."></span></span>
+          <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>Double-checked<span class="info-i" data-tip="A second AI recomputes every key number without seeing the first one's code, and every step is re-run to make sure it gives the same result."></span></span>
+          <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.5" r="5.5"/><path d="M8.5 14l-1 7 4.5-2.3L16.5 21l-1-7"/></svg>Signed<span class="info-i" data-tip="The whole run is sealed with a digital signature: the question, a fingerprint of the data, all code and every result. Change one character and the check fails."></span></span>
         </div>
       </section>
 
       <section class="card p-5 sm:p-6">
         <div class="flex items-start gap-3">
           <span class="step-num">1</span>
-          <div><h2 class="step-title">Choose your data</h2><p class="text-sm muted">Try the sample building below, or upload your own meter readings as a CSV.</p></div>
+          <div><h2 class="step-title">Choose your data</h2><p class="text-sm muted">Use our sample building or upload your own.</p></div>
         </div>
         <div class="grid sm:grid-cols-2 gap-3 mt-4">
           <button id="pickDemo" class="tile">
             <svg class="w-6 h-6 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 21V9h5a1 1 0 0 1 1 1v11M3 21h18M7 8h3M7 12h3M7 16h3M17 13h0M17 17h0"/></svg><span class="font-medium">Sample building — co-op heat-pump retrofit</span>
-            <span class="text-sm muted">Stockholm (SE3) · daily meter 2024–2026 · outdoor temperature · spot price</span>
+            <span class="text-sm muted">A Stockholm housing co-op, 2 years of meter data<span class="info-i" data-tip="Daily electricity meter readings (2024–2026), outdoor temperature and the daily spot price (SE3). A heat pump was installed in March 2025 with a promised 40% saving."></span></span>
           </button>
           <label id="pickUpload" class="tile cursor-pointer">
             <svg class="w-6 h-6 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></svg><span class="font-medium">Upload your own</span>
-            <span class="text-sm muted">Your meter data as a CSV, up to 20 MB. Only ever opened inside a sandbox.</span>
+            <span class="text-sm muted">A CSV file, up to 20 MB<span class="info-i" data-tip="Your file is only ever opened inside a locked sandbox, never by the server itself."></span></span>
             <input id="file" type="file" accept=".csv" class="hidden" />
           </label>
         </div>
@@ -151,7 +156,7 @@
         <ol id="stepper" class="mt-6"></ol>
         <div class="flex flex-wrap items-center justify-between gap-3 text-xs muted border-t border-slate-100 dark:border-slate-800 pt-3">
           <span id="fleetLine"></span>
-          <button class="text-lime-700 dark:text-lime-400 hover:underline" data-open-vultr>See it live on the Vultr panel →</button>
+          <button class="text-lime-700 dark:text-lime-400 hover:underline" data-open-vultr>Open the Vultr Dashboard →</button>
         </div>
         <details class="mt-3">
           <summary class="text-xs muted cursor-pointer">Technical log</summary>
@@ -163,17 +168,17 @@
         <div class="flex items-start gap-3">
           <span class="step-num">4</span>
           <div class="flex-1"><h2 class="step-title">The answer</h2><p class="text-sm muted">Built only from facts that passed the checks.</p></div>
-          <a id="receiptBtn" class="btn btn-ghost hidden" download><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11l4 4 4-4M5 19h14"/></svg>Signed receipt</a>
+          <a id="receiptBtn" class="btn btn-ghost hidden" download><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11l4 4 4-4M5 19h14"/></svg>Signed receipt</a><span id="receiptInfo" class="info-i hidden self-center"></span>
         </div>
         <div id="badges" class="flex flex-wrap gap-2 mt-4"></div>
         <ol id="answer" class="mt-5 space-y-3"></ol>
         <div id="charts" class="grid sm:grid-cols-2 gap-4 mt-5"></div>
-        <div id="assumptionsBox" class="hidden mt-5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 p-4">
-          <h3 class="font-medium text-amber-900 dark:text-amber-200">What this answer assumes</h3>
+        <details id="assumptionsBox" class="hidden mt-5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 p-4">
+          <summary id="assumptionsTitle" class="cursor-pointer font-medium text-amber-900 dark:text-amber-200">What this answer assumes</summary>
           <ul id="assumptions" class="list-disc pl-5 mt-2 text-sm space-y-1 text-amber-900/90 dark:text-amber-100/80"></ul>
           <h3 id="caveatsTitle" class="hidden font-medium mt-3 text-amber-900 dark:text-amber-200">Caveats</h3>
           <ul id="caveats" class="list-disc pl-5 mt-1 text-sm space-y-1 text-amber-900/90 dark:text-amber-100/80"></ul>
-        </div>
+        </details>
         <details class="mt-5 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
           <summary class="cursor-pointer font-medium">Show the work <span class="muted font-normal text-sm">· the checks, the code and the raw output</span></summary>
           <div id="work" class="mt-4 space-y-6 text-sm"></div>
@@ -186,19 +191,15 @@
     <main id="lab" class="mx-auto max-w-5xl px-4 py-8 space-y-6 hidden">
       <section class="space-y-3">
         <h1 class="text-3xl font-bold tracking-tight">Try to break it</h1>
-        <p class="muted max-w-3xl">Here we attack our own sandbox on purpose. The safety check that normally screens the AI's
-          code is switched off, so the sandbox alone has to hold. After every attack the server checks itself from the
-          outside: a secret file on the server must be unchanged, and the sandbox engine must still be healthy.</p>
+        <p class="muted max-w-3xl text-lg">We attack our own system on purpose. Nothing gets out.<span class="info-i" data-tip="Here the safety check that normally screens the AI's code is switched off, so the sandbox alone has to hold. After every attack the server checks itself from the outside: a secret file on the server must be unchanged, and the sandbox engine must still be healthy."></span></p>
         <div id="hostStatus" class="chip chip-green !text-sm !py-1">Server: checking…</div>
       </section>
 
       <section class="card p-5 sm:p-6 border-red-200 dark:border-red-900/70">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="max-w-2xl">
-            <h2 class="text-lg font-semibold inline-flex items-center gap-2"><svg class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="7.5" width="11" height="10" rx="2"/><path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3"/><circle cx="10" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="1.1" fill="currentColor" stroke="none"/></svg>Autonomous red-team agent</h2>
-            <p class="text-sm muted mt-1">An LLM red-teamer generates novel exploit code for five objectives — container
-              escape, credential disclosure, data exfiltration, persistence, and resource exhaustion — executed concurrently,
-              each in its own isolated sandbox. Host integrity is re-verified after every run.</p>
+            <h2 class="text-lg font-semibold inline-flex items-center gap-2"><svg class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="7.5" width="11" height="10" rx="2"/><path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3"/><circle cx="10" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="1.1" fill="currentColor" stroke="none"/></svg>AI hacker</h2>
+            <p class="text-sm muted mt-1">An AI hacker writes 5 brand-new attacks and runs them all at once.<span class="info-i" data-tip="An LLM red-teamer generates novel exploit code for five objectives (container escape, credential disclosure, data exfiltration, persistence and resource exhaustion), executed concurrently, each in its own isolated sandbox. Host integrity is re-verified after every run."></span></p>
           </div>
           <button id="redteam" class="btn btn-danger">Launch red-team run</button>
         </div>
@@ -210,9 +211,7 @@
         <div class="flex flex-wrap items-start justify-between gap-2">
           <div class="max-w-2xl">
             <h2 class="text-lg font-semibold inline-flex items-center gap-2"><svg class="w-5 h-5 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M7.5 9.5l3 3-3 3M13 15.5h4"/></svg>Bring your own attack</h2>
-            <p class="text-sm muted mt-1">Don't take our word for it. Write any Python you like (delete files, call the internet,
-              hunt for keys, eat all the memory, leave something behind) and run it in a sandbox with the safety check
-              switched off. Then the server checks itself from the outside.</p>
+            <p class="text-sm muted mt-1">Write your own attack in Python and run it. We check that nothing got out.<span class="info-i" data-tip="Don't take our word for it. Write any Python you like (delete files, call the internet, hunt for keys, eat all the memory, leave something behind) and run it in a sandbox with the safety check switched off. Then the server checks itself from the outside."></span></p>
           </div>
           <span class="verdict chip chip-gray">Ready</span>
         </div>
@@ -262,16 +261,16 @@ except Exception as e:
          class="fixed top-16 right-0 z-40 h-[calc(100vh-4rem)] w-full sm:w-[420px] translate-x-full transition-transform duration-300 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col">
     <div class="flex items-center justify-between gap-3 px-5 h-16 border-b border-slate-200 dark:border-slate-800">
       <div>
-        <div class="font-semibold">How Vultr powers this</div>
-        <div class="text-xs muted">Live: lights up while the agent works</div>
+        <div class="font-semibold">Vultr Dashboard</div>
+        <div class="text-xs muted">Live: what's running on Vultr right now</div>
       </div>
       <button id="vultrClose" class="btn btn-ghost !px-2.5" aria-label="Close">✕</button>
     </div>
     <div class="flex-1 overflow-y-auto p-5 space-y-7">
-      <section><h3 class="side-h">Architecture, live</h3><div id="diagram" class="space-y-0"></div></section>
-      <section><h3 class="side-h">Cost</h3><div id="costBox"></div></section>
-      <section><h3 class="side-h">Model usage · Vultr Serverless Inference</h3><div id="usageBox"></div></section>
-      <section><h3 class="side-h">Infrastructure</h3><div id="infraBox"></div></section>
+      <section><h3 class="side-h">Running now</h3><div id="diagram" class="space-y-0"></div></section>
+      <section><h3 class="side-h">Cost of AI on Vultr</h3><div id="costBox"></div></section>
+      <details class="border-t border-slate-200 dark:border-slate-800 pt-4"><summary class="side-h !mb-0 cursor-pointer">AI models used</summary><div id="usageBox" class="mt-3"></div></details>
+      <details class="border-t border-slate-200 dark:border-slate-800 pt-4"><summary class="side-h !mb-0 cursor-pointer">Technical details</summary><div id="infraBox" class="mt-3"></div></details>
     </div>
   </aside>
 
@@ -286,6 +285,7 @@ except Exception as e:
     </div>
   </div>
 
+  <div id="tip" role="tooltip" hidden></div>
   <script src="/static/app.js"></script>
 </body>
 </html>

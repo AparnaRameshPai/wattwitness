@@ -120,7 +120,10 @@ Rules:
 - Use ONLY facts that appear in the outputs. Never invent numbers.
 - Prefer verified metrics. If you mention an unverified number, say clearly that it is unconfirmed.
 - If a chart review found issues or a replay did not reproduce, add a caveat.
-- Every statement must point to the task(s) and metric(s) it relies on.
+- Link each statement to its evidence ONLY through the "task_ids" and "metrics" fields. Never write task numbers,
+  metric names (like weather_adjusted_savings_percent) or the words "task" or "verified" inside the text: the page
+  shows those links separately.
+- Round percentages to 1 decimal and kWh and SEK to whole numbers. One or two short sentences per statement.
 - List every assumption the analysis relied on (from the tasks plus any you notice), in plain language.
 - Keep it short: 2-5 statements.
 - For an energy savings question, write for a housing cooperative board or building owner, not an engineer:
