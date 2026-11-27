@@ -1,29 +1,57 @@
 # Receipts ✓
 
-**Verified energy savings: every number proven, every action contained, every run signed.**
+**Verified energy savings: every key number recomputed independently, every action contained, every run signed.**
 
-A housing cooperative pays a contractor for a heat pump that is *guaranteed* to cut electricity use by 40%.
-A year later the bill is lower, but was that the heat pump, or just a mild winter? Owner and contractor
-disagree, and money (a performance guarantee, a bonus, a grant) depends on the answer.
+> A housing co-op paid for a heat pump with a **guaranteed 40%** cut in electricity. The bill dropped **43%**, so the
+> contractor says the guarantee was met. But the winter after was milder. Adjusted for the weather, the saving is
+> **38%**: the guarantee was **not** met. Who is right decides who pays. Receipts settles it with a signed receipt
+> that the owner and the contractor can both check.
 
-Receipts settles it. Upload the building's meter data and ask in plain English. An AI agent does what an energy
-auditor would do: it builds a **weather-adjusted baseline** (IPMVP Option C, heating degree days) and computes the
-avoided energy in kWh and SEK at Nord Pool spot prices. Every line of AI-written code runs in its own throwaway
-sandbox on Vultr. An independent verifier recomputes every key number, every task is replayed to prove it is
-reproducible, and a vision model critiques every chart. The finished run is sealed into an **Ed25519-signed
-receipt** that both parties can verify offline. An **autonomous red-team agent** attacks the sandbox live to prove
-the containment holds.
+Upload a building's meter data and ask in plain English. An AI agent does the energy auditor's calculation: a
+**weather-adjusted baseline** (IPMVP Option C, heating degree days, base 17 °C), avoided energy in kWh, and avoided
+cost in SEK at daily SE3 spot prices. Every line of AI-written code runs in its own throwaway sandbox on Vultr (no
+network, no secrets, hard limits). Every key number is recomputed by a second, independent run that never sees the
+original code; every task is replayed in a fresh sandbox and must give identical output; a vision model reviews
+every chart. The run is sealed into an **Ed25519-signed receipt** anyone can verify offline. An **autonomous
+red-team agent** attacks the sandbox live to show the containment holds.
 
-> When money depends on an AI's number, two things must be true: the number is right, and the AI cannot hurt you.
-> Receipts proves both, and hands every party the same cryptographic receipt.
+## Who it is for
+- **Ideal customer:** a property owner with a portfolio of buildings (municipal housing companies, property
+  companies; 50–500 buildings, Nordics first) that buys retrofits under savings guarantees and must report verified
+  savings to lenders and in sustainability reports. The need repeats every year, for every building.
+- **Also:** energy service companies whose pay depends on verified savings, and anyone checking a savings claim
+  before paying for it. Receipts still works as a general CSV analyst for other data.
 
-**Who it is for:** building owners (housing cooperatives, municipalities, property companies) and the energy
-service companies whose pay depends on verified savings, and anyone checking a savings claim before paying for it.
-It still works as a general CSV analyst for any other data.
+## Why not a spreadsheet?
+The arithmetic is easy. The cost and the disputes are in the **judgment calls**: the baseline window, the base
+temperature, which days to exclude, the model shape. IPMVP is a framework, not a recipe, and these choices move the
+result. Receipts makes every choice explicit (the assumptions box in every answer), recomputes each key number
+independently, replays the analysis, and signs the whole run (question, dataset hash, all code, output hashes,
+verdicts). A spreadsheet can't show where its number came from; a receipt can.
 
-**The demo:** a synthetic Stockholm housing co-op (price area SE3). The naive before/after comparison says the
-heat pump saved about 43%, so the guarantee looks met. After adjusting for the milder winter, it saved about 38%:
-the guarantee was **not** met. Receipts proves it, number by number, and signs the result.
+## Evidence
+Live runs on the Vultr VM (Stockholm, `vc2-4c-8gb`, gVisor), demo building, the website's sample question, 27 Nov 2026:
+
+| Check | Result |
+|---|---|
+| Answer vs. answer key (`make_demo_data.py`) | Every run: **37.6% weather-adjusted savings, guarantee not met**; 90,048 kWh and 73,593 SEK avoided; naive 42.6% |
+| Baseline model | a = 311.6 kWh/day, b = 45.16 kWh/HDD, CV(RMSE) 6.7% (acceptable for daily data) |
+| Reproducibility | Every task replayed in a fresh sandbox with identical output hash |
+| Chart review (vision model) | Every chart "good" |
+| Lifecycle | Sandboxes created = destroyed after every run |
+| Time and cost per run | 75–100 s; about $0.05–0.10 of Vultr Serverless Inference (from the app's own usage meter) |
+| Is 37.6% vs. 40% a real difference? | Our own offline check of the demo data: 37.3–37.9% for HDD base 15–18 °C, 95% range about ±1 point (simplified ASHRAE Guideline 14). Below 40% in every case. |
+
+## Known limitations
+- The demo building is **synthetic** (`scripts/make_demo_data.py`), built with a known answer so the agent can be checked.
+- Only **IPMVP Option C** (whole-building metering, linear degree-day model) is built in.
+- Coder and verifier use the **same model** (`deepseek-v4.1-flash-1017`). Independence comes from blind
+  recomputation: the verifier sees only the metric's definition, never the code. A different model (qwen3.8-27b)
+  spent its whole token budget reasoning on the harder metrics and printed no result.
+- A **shared wrong assumption** between coder and verifier would not be caught. That is why every assumption is shown.
+- The **policy gate is a helper**, not the security boundary. The sandbox is the boundary (the Attack Lab proves it with the gate off).
+- The SEK figure covers the **spot energy price only**, not grid fees, energy tax or VAT.
+- One CSV per run. Pulling meter and weather data automatically is roadmap.
 
 Track: **Pattern A: CSV Analyst + Self-Healing Runner**, extended with multi-sandbox planning, independent
 verification, reproducibility replay, signed receipts and an autonomous red team.
