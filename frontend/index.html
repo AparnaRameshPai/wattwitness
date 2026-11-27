@@ -217,8 +217,13 @@ try:
 except Exception as e:
     print("Network blocked:", type(e).__name__, e)
 
-print("Environment variables that look like secrets:",
-      [k for k in os.environ if any(w in k.upper() for w in ("KEY", "TOKEN", "SECRET", "PASS"))])
+print("Every environment variable in here:", sorted(os.environ))
+
+try:
+    open("/etc/agent/inference.env").read()
+    print("Found the server's API key file!")
+except Exception as e:
+    print("API key file not reachable:", type(e).__name__)
 </textarea>
         <div class="flex flex-wrap items-center gap-3">
           <button id="byoRun" class="launch btn btn-danger">Run my code in a sandbox</button>
