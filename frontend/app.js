@@ -1053,16 +1053,32 @@ function launchAttack(id, url = `/api/attacks/${id}/run`) {
         <b>The agent answered:</b> ${said}${warned ? `<br><b>It warned:</b> ${warned}` : ""}</div>`);
     } else if (ev.type === "attack_result") {
       clearInterval(timer);
-      verdict.className = `verdict chip stamp-in ${ev.contained ? "chip-green" : "chip-red"}`;
-      verdict.innerHTML = ev.contained ? `${SHIELD} Contained` : "Check ⚠";
+      // Three honest outcomes: green = a real attack ran and was contained; grey = the code errored before it
+      // did anything (nothing to contain); red = something actually escaped the sandbox.
+      const errored = ev.contained && ev.sandbox_status === "error";
+      const outcome = !ev.contained ? "escaped" : errored ? "errored" : "contained";
+      verdict.className = `verdict chip stamp-in ${outcome === "contained" ? "chip-green" : outcome === "errored" ? "chip-gray" : "chip-red"}`;
+      verdict.innerHTML = outcome === "contained" ? `${SHIELD} Contained` : outcome === "errored" ? "No breach" : "Check ⚠";
       hit(card);
-      scoreAttack(1, ev.contained ? 0 : 1);
+      if (!errored) scoreAttack(1, ev.contained ? 0 : 1);  // don't let code that never ran inflate the scoreboard
       const r = q(".result");
-      r.className = `result rounded-xl p-3 text-sm ${ev.contained ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200"}`;
+      r.className = `result rounded-xl p-3 text-sm ${outcome === "contained"
+        ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+        : outcome === "errored"
+        ? "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300"
+        : "bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200"}`;
       const checks = [`Server file unchanged ${ev.host_canary_intact ? "✓" : "✗"}`, `Sandbox engine healthy ${ev.host_healthy ? "✓" : "✗"}`,
         ...(ev.leftovers_clean === undefined ? [] : [`Nothing left behind ${ev.leftovers_clean ? "✓" : "✗"}`, `API key never seen ${ev.key_leaked ? "✗" : "✓"}`])];
-      r.innerHTML = `<div class="font-medium">${ev.contained ? "Contained. Nothing got out." : "Needs a look."}${info(`How it was stopped: ${ev.stopped_by}`)}</div>
-        <div class="text-xs mt-1 opacity-80">Checked from outside the sandbox ${checks.every((c) => c.endsWith("✓")) ? "✓" : "✗"}${info(checks.join("\n"))}</div>`;
+      const headline = outcome === "errored" ? "Nothing to contain — your code errored before it ran."
+        : outcome === "escaped" ? "Needs a look."
+        : ev.sandbox_status === "oom" ? "Contained — your code was killed at the memory limit."
+        : ev.sandbox_status === "timeout" ? "Contained — your code was killed at the time limit."
+        : "Contained. Nothing got out.";
+      const sub = outcome === "errored"
+        ? `The host was never touched.${info(checks.join("\n"))}`
+        : `Checked from outside the sandbox ${checks.every((c) => c.endsWith("✓")) ? "✓" : "✗"}${info(checks.join("\n"))}`;
+      r.innerHTML = `<div class="font-medium">${headline}${outcome === "errored" ? "" : info(`How it was stopped: ${ev.stopped_by}`)}</div>
+        <div class="text-xs mt-1 opacity-80">${sub}</div>`;
     } else if (ev.type === "error") {
       q(".progress").insertAdjacentHTML("beforeend", `<div class="text-red-600">Error: ${esc(ev.message)}</div>`);
     } else if (ev.type === "done") {
