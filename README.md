@@ -1,15 +1,29 @@
 # Receipts ✓
 
-**Zero-trust AI data analysis: every number proven, every action contained, every run signed.**
+**Verified energy savings: every number proven, every action contained, every run signed.**
 
-Upload a spreadsheet and ask a question in plain English. Receipts plans the analysis, dispatches every task to its
-own throwaway sandbox in parallel, heals its own errors, and then proves its work: an independent verifier
-recomputes every key number in fresh sandboxes, every task is replayed to prove it is reproducible, and a vision
-model critiques every chart. The finished run is sealed into an **Ed25519-signed receipt** that anyone can verify
-offline. An **autonomous red-team agent** attacks the sandbox live to prove the containment holds.
+A housing cooperative pays a contractor for a heat pump that is *guaranteed* to cut electricity use by 40%.
+A year later the bill is lower, but was that the heat pump, or just a mild winter? Owner and contractor
+disagree, and money (a performance guarantee, a bonus, a grant) depends on the answer.
 
-> An agent that runs code is only shippable if you can trust its output and it cannot hurt you.
-> Receipts proves both, and hands you the cryptographic receipt.
+Receipts settles it. Upload the building's meter data and ask in plain English. An AI agent does what an energy
+auditor would do: it builds a **weather-adjusted baseline** (IPMVP Option C, heating degree days) and computes the
+avoided energy in kWh and SEK at Nord Pool spot prices. Every line of AI-written code runs in its own throwaway
+sandbox on Vultr. An independent verifier recomputes every key number, every task is replayed to prove it is
+reproducible, and a vision model critiques every chart. The finished run is sealed into an **Ed25519-signed
+receipt** that both parties can verify offline. An **autonomous red-team agent** attacks the sandbox live to prove
+the containment holds.
+
+> When money depends on an AI's number, two things must be true: the number is right, and the AI cannot hurt you.
+> Receipts proves both, and hands every party the same cryptographic receipt.
+
+**Who it is for:** building owners (housing cooperatives, municipalities, property companies) and the energy
+service companies whose pay depends on verified savings, and anyone checking a savings claim before paying for it.
+It still works as a general CSV analyst for any other data.
+
+**The demo:** a synthetic Stockholm housing co-op (price area SE3). The naive before/after comparison says the
+heat pump saved about 43%, so the guarantee looks met. After adjusting for the milder winter, it saved about 38%:
+the guarantee was **not** met. Receipts proves it, number by number, and signs the result.
 
 Track: **Pattern A: CSV Analyst + Self-Healing Runner**, extended with multi-sandbox planning, independent
 verification, reproducibility replay, signed receipts and an autonomous red team.
@@ -65,7 +79,7 @@ per-token prices, and the VM's facts (region, plan, size) from the Vultr metadat
 
 ### Attack Lab
 - **Autonomous red-team agent:** an LLM invents its own attacks for five goals (escape, steal secrets, exfiltrate, persist, exhaust the host). They all run in parallel sandboxes, followed by independent host checks.
-- **Scripted attacks:** `rm -rf /`, infinite loop, memory bomb (watch it hit the cap live), fork bomb, exfiltration (HTTP and DNS), secret theft, persistence, and a **prompt injection hidden in a CSV cell**.
+- **Scripted attacks:** `rm -rf /`, infinite loop, memory bomb (watch it hit the cap live), fork bomb, exfiltration (HTTP and DNS), secret theft, persistence, and a **prompt injection hidden in the meter data** (a "contractor note" telling the agent to report a fake 52% saving).
 - **Proof the host is untouched:** a canary file on the host keeps its exact SHA-256, and the sandbox engine stays healthy.
 
 ## Verify a receipt yourself
@@ -114,4 +128,4 @@ sandbox-image/Dockerfile
 deploy/   bootstrap_vm.sh fresh-VM prep + SSH hardening · setup_vm.sh app install · receipts.service · Caddyfile
 scripts/  demo data, sandbox test, receipt verifier, smoke_e2e.py end-to-end demo check
 ```
-The demo dataset is synthetic (`scripts/make_demo_data.py`), with a planted story: Electronics revenue drops in Q3 2025, mostly in the South region.
+The demo dataset is synthetic (`scripts/make_demo_data.py`, which also prints the answer key): daily meter data, outdoor temperature and SE3 spot prices for a Stockholm housing co-op that installed a heat pump in March 2025, with a milder winter afterwards and a few days of meter outage.

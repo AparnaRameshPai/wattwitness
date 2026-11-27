@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Receipts · a zero-trust AI data analyst on Vultr</title>
+  <title>Receipts · verified energy savings on Vultr</title>
   <script>
     // Apply the saved theme before the first paint (light by default).
     if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
@@ -62,7 +62,7 @@
         <span class="grid place-items-center w-9 h-9 rounded-xl bg-blue-600 text-white font-bold">✓</span>
         <div class="leading-tight hidden sm:block">
           <div class="font-semibold">Receipts</div>
-          <div class="text-xs muted">Zero-trust AI data analyst</div>
+          <div class="text-xs muted">Verified energy savings</div>
         </div>
       </div>
       <nav class="sm:ml-6 flex gap-1 whitespace-nowrap">
@@ -84,10 +84,11 @@
     <!-- ============ ANALYSE ============ -->
     <main id="analyst" class="mx-auto max-w-4xl px-4 py-8 space-y-6">
       <section class="text-center space-y-4 py-2">
-        <h1 class="text-3xl sm:text-4xl font-bold tracking-tight">Ask your data a question.<br class="hidden sm:block" />
+        <h1 class="text-3xl sm:text-4xl font-bold tracking-tight">Did the retrofit really save energy?<br class="hidden sm:block" />
           Get an answer you can <span class="text-blue-600 dark:text-blue-400">prove</span>.</h1>
-        <p class="muted max-w-2xl mx-auto">An AI writes the analysis code and runs it inside locked-down, throwaway sandboxes
-          on Vultr. Then it re-checks every key number and signs the result, so you don't have to take its word for it.</p>
+        <p class="muted max-w-2xl mx-auto">Upload your building's meter data. An AI checks a contractor's savings promise the way
+          an energy auditor would (weather-adjusted, IPMVP), runs every line of its code in locked-down, throwaway sandboxes
+          on Vultr, re-checks every key number and signs the result: a savings receipt both owner and contractor can verify.</p>
         <div class="flex flex-wrap justify-center gap-2">
           <span class="chip chip-gray !text-sm !py-1">📦 Code runs in isolated sandboxes</span>
           <span class="chip chip-gray !text-sm !py-1">✅ Every number re-checked</span>
@@ -98,12 +99,12 @@
       <section class="card p-5 sm:p-6">
         <div class="flex items-start gap-3">
           <span class="step-num">1</span>
-          <div><h2 class="step-title">Choose your data</h2><p class="text-sm muted">Use the sample sales file, or upload a CSV of your own.</p></div>
+          <div><h2 class="step-title">Choose your data</h2><p class="text-sm muted">Use the sample building, or upload a CSV of your own (any data works).</p></div>
         </div>
         <div class="grid sm:grid-cols-2 gap-3 mt-4">
           <button id="pickDemo" class="tile">
-            <span class="text-2xl">📊</span><span class="font-medium">Sample: sales 2025</span>
-            <span class="text-sm muted">8,837 orders · 4 product categories · 4 regions</span>
+            <span class="text-2xl">🏢</span><span class="font-medium">Sample: housing co-op heat pump retrofit</span>
+            <span class="text-sm muted">Stockholm (SE3) · daily meter 2024–2026 · outdoor temperature · spot price</span>
           </button>
           <label id="pickUpload" class="tile cursor-pointer">
             <span class="text-2xl">⬆️</span><span class="font-medium">Upload a CSV</span>
@@ -119,7 +120,7 @@
           <span class="step-num">2</span>
           <div><h2 class="step-title">Ask a question</h2><p class="text-sm muted">Plain English is fine.</p></div>
         </div>
-        <textarea id="question" rows="2" class="input mt-4" placeholder="e.g. Which product category caused the revenue drop in Q3 2025?"></textarea>
+        <textarea id="question" rows="2" class="input mt-4" placeholder="e.g. Did the heat pump deliver the guaranteed 40% savings after adjusting for weather?"></textarea>
         <div id="suggestions" class="flex flex-wrap gap-2 mt-3"></div>
         <div class="flex flex-wrap items-center gap-3 mt-5">
           <button id="run" class="btn btn-primary !text-base !px-6 !py-2.5" disabled>Analyse →</button>

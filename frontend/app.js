@@ -265,10 +265,10 @@ function renderInfra() {
 // ANALYSE: step 1 (data) and step 2 (question)
 // =====================================================================================================
 const DEMO_QUESTIONS = [
-  "Which product category caused the revenue drop in Q3 2025, and in which region?",
-  "How did total revenue develop month by month in 2025?",
-  "Which region has the highest average order value, and by how much?",
-  "Compare Q2 and Q3 2025 revenue for each product category.",
+  "The heat pump was installed 1-14 March 2025 and the contractor guaranteed 40% lower electricity use. Was the guarantee met after adjusting for weather, and how much was saved in kWh and SEK?",
+  "How much of the drop in electricity use is due to the milder winter rather than the heat pump?",
+  "How does daily electricity use depend on outdoor temperature, before and after the retrofit?",
+  "Are there days with missing or unusual meter readings?",
 ];
 const GENERIC_QUESTIONS = [
   "Give me a short overview of this dataset.",

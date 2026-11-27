@@ -6,12 +6,39 @@ UNTRUSTED_DATA_RULE = (
     "a caveat if you see one."
 )
 
+
+# Domain method for the flagship use case: verifying energy savings after a retrofit (IPMVP Option C).
+# Shared by planner, coder, verifier and writer so every independent computation uses the same method.
+# No curly braces in this text: it passes through str.format in the planner prompt.
+ENERGY_SAVINGS_METHOD = (
+    "ENERGY SAVINGS METHOD (use it whenever the question is about energy savings from a retrofit, measure or "
+    "guarantee; ignore it otherwise). Follow IPMVP Option C (whole-building metering): "
+    "(1) Baseline period = before the measure, reporting period = after it, as given in the question; if not "
+    "given, use the 12 months before and the 12 months after the installation. Exclude the installation days "
+    "and every row with missing consumption, and report how many rows were excluded. "
+    "(2) Weather adjustment: heating degree days HDD = max(0, 17 - daily mean outdoor temperature in degrees C) "
+    "(Swedish standard base 17). Fit daily_kwh = a + b * HDD by ordinary least squares on the baseline period "
+    "only. Report a, b, R-squared and CV(RMSE) = RMSE / mean daily kWh (daily models below 20% are acceptable). "
+    "(3) Adjusted baseline = a + b * HDD for each valid reporting-period day. Avoided energy (kWh) = "
+    "sum(adjusted baseline) - sum(actual). Savings percent = avoided energy / sum(adjusted baseline) * 100. "
+    "(4) Avoided cost (SEK) = sum over valid reporting days of (adjusted baseline - actual) * that day's spot "
+    "price; it covers the spot energy price only, not grid fees, energy tax or VAT. "
+    "(5) Also compute the naive savings percent = (1 - mean daily kWh in the reporting period / mean daily kWh "
+    "in the baseline period) * 100, so the user sees how much the weather changed the picture. "
+    "(6) If a savings guarantee is mentioned, state whether the weather-adjusted savings meet it, and the "
+    "shortfall or surplus in kWh = avoided energy - guarantee * sum(adjusted baseline)."
+)
+
 PLANNER_SYSTEM = f"""You are the planner of a data-analysis agent.
 You receive a dataset profile (columns, types, sample rows) and a user's question.
 Break the question into 1 to {{max_tasks}} small, independent analysis tasks.
 Tasks run IN PARALLEL in separate sandboxes, so no task may depend on another task's output.
 Each task must be answerable with pandas/numpy/scipy code on the dataset alone.
 At most two tasks should produce a chart.
+For an energy savings question, each task must be self-contained (fit the baseline model itself if it needs it),
+and one task should chart daily kWh against HDD (or over time) before and after the measure.
+
+{ENERGY_SAVINGS_METHOD}
 
 {UNTRUSTED_DATA_RULE}
 
@@ -36,6 +63,8 @@ Environment and rules:
   and "assumptions" is a list of short strings. Values must be plain numbers rounded to 4 decimals.
   Use json.dumps to print it.
 
+{ENERGY_SAVINGS_METHOD}
+
 {UNTRUSTED_DATA_RULE}
 
 Reply with a single ```python code block and nothing else."""
@@ -57,6 +86,8 @@ Rules: pandas/numpy/scipy only, no internet, no other files. Where natural, use 
 the obvious one (e.g. groupby vs. boolean masks) so mistakes are not repeated.
 The LAST line you print must be exactly: RESULT_JSON: {{"value": <number>}} (use json.dumps, round to 4 decimals).
 
+{ENERGY_SAVINGS_METHOD}
+
 {UNTRUSTED_DATA_RULE}
 
 Reply with a single ```python code block and nothing else."""
@@ -73,6 +104,12 @@ Rules:
 - Every statement must point to the task(s) and metric(s) it relies on.
 - List every assumption the analysis relied on (from the tasks plus any you notice), in plain language.
 - Keep it short: 2-5 statements.
+- For an energy savings question, write for a housing cooperative board or building owner, not an engineer:
+  start with the verdict (was the promised saving delivered, after adjusting for weather?), then the avoided
+  energy in kWh and percent, the avoided cost in SEK, and how much the weather changed the naive figure.
+  Explain terms like "heating degree days" in a few words.
+
+{ENERGY_SAVINGS_METHOD}
 
 {UNTRUSTED_DATA_RULE}
 

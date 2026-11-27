@@ -7,7 +7,7 @@ from backend.sandbox import docker_available, run_code
 
 assert docker_available(), "Docker is not running. Start Docker Desktop (or the docker service) first."
 
-ok = run_code("import pandas as pd\nprint(pd.read_csv('data.csv').shape)", config.DEMO_DIR / "sales_2025.csv")
+ok = run_code("import pandas as pd\nprint(pd.read_csv('data.csv').shape)", config.DEMO_DIR / "brf_heat_pump_meter.csv")
 print("1. pandas on demo data:", ok.status, ok.stdout.strip(), ok.stderr.strip()[-300:])
 
 chart = run_code("import matplotlib.pyplot as plt\nplt.plot([1, 3, 2])\nplt.savefig('chart.png')\nprint('saved')")

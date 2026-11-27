@@ -14,7 +14,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-QUESTION = "Which product category caused the revenue drop in Q3 2025, and in which region?"
+QUESTION = "The heat pump was installed 1-14 March 2025 and the contractor guaranteed 40% lower electricity use. Was the guarantee met after adjusting for weather, and how much was saved in kWh and SEK?"
 FAILS: list[str] = []
 
 

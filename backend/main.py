@@ -122,7 +122,7 @@ async def upload_dataset(file: UploadFile):
 
 @app.post("/api/datasets/demo")
 def demo_dataset():
-    src = config.DEMO_DIR / "sales_2025.csv"
+    src = config.DEMO_DIR / "brf_heat_pump_meter.csv"
     dataset_id = uuid.uuid4().hex[:12]
     shutil.copy(src, config.DATA_DIR / f"{dataset_id}.csv")
     return {"dataset_id": dataset_id, "filename": src.name, "size_kb": round(src.stat().st_size / 1024, 1)}
