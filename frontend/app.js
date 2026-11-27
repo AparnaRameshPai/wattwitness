@@ -377,9 +377,27 @@ async function chooseDataset(resp, demo) {
   $("datasetInfo").innerHTML = `<span class="chip chip-green">✓ Ready</span><span class="font-mono">${esc(d.filename)}</span><span class="muted">· ${esc(d.size_kb)} KB</span>`;
   renderSuggestions();
   if (demo && !$("question").value.trim()) $("question").value = DEMO_QUESTIONS[0].text;
+  if (!demo) {
+    $("question").scrollIntoView({ behavior: "smooth", block: "center" });
+    $("question").focus({ preventScroll: true });
+  }
   updateRunButton();
 }
 $("pickDemo").addEventListener("click", async () => chooseDataset(await fetch("/api/datasets/demo", { method: "POST" }), true));
+// Hero button: one click loads the sample building, asks the 40% question and starts the run.
+$("heroDemo").addEventListener("click", async () => {
+  if (run && !run.finished) return $("step3").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("heroDemo").disabled = true;
+  try {
+    await chooseDataset(await fetch("/api/datasets/demo", { method: "POST" }), true);
+    if (!dataset) return;
+    $("question").value = DEMO_QUESTIONS[0].text;
+    updateRunButton();
+    startRun();
+  } finally {
+    $("heroDemo").disabled = false;
+  }
+});
 $("file").addEventListener("change", async (e) => {
   const f = e.target.files[0];
   if (!f) return;
@@ -447,6 +465,7 @@ function startRun() {
   $("step3").classList.remove("hidden");
   $("step4").classList.add("hidden");
   $("log").innerHTML = "";
+  $("fleet").innerHTML = "";
   renderSteps();
   updateRunButton();
   $("step3").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -464,6 +483,25 @@ function startRun() {
   };
 }
 
+// ---------- sandbox cubes in step 3: pop in when a sandbox starts, glow while it runs, poof when it is deleted ----------
+const SBX_WORD = { task: "a task", profile: "reading the data", verify: "an independent re-check", tiebreak: "a tie-break", replay: "a re-run" };
+function fleetEvent(ev) {
+  const box = $("fleet");
+  if (ev.type === "sandbox_start") {
+    const el = document.createElement("span");
+    el.className = "cube";
+    el.dataset.sbx = ev.sandbox_id;
+    el.dataset.tip = `Sandbox ${ev.sandbox_id}: ${SBX_WORD[ev.label] || ev.label}. Deleted as soon as it finishes.`;
+    el.innerHTML = MINI.box;
+    box.appendChild(el);
+  } else {
+    const el = [...box.children].find((c) => c.dataset.sbx === ev.sandbox_id);
+    if (!el) return;
+    el.classList.add("poof");
+    setTimeout(() => el.remove(), 550);
+  }
+}
+
 function log(text) {
   $("log").insertAdjacentHTML("beforeend", `<li>${esc(new Date().toLocaleTimeString())}  ${esc(text)}</li>`);
 }
@@ -478,6 +516,7 @@ function enterStage(key, ev) {
 
 function onRunEvent(ev) {
   trackLive(ev);
+  if (ev.type === "sandbox_start" || ev.type === "sandbox_end") fleetEvent(ev);
   const t = ev.task_id;
   const task = run.tasks[t];
   switch (ev.type) {
@@ -898,6 +937,39 @@ document.addEventListener("keydown", (e) => {
 const ATTACK_ICON = { rm_rf: "🗑️", infinite_loop: "♾️", memory_bomb: "💣", fork_bomb: "🍴", exfiltrate: "📡",
   steal_secrets: "🔑", persistence: "🪝", hostile_csv: "🧪" };
 const END_WORD = { ok: "finished", error: "crashed", timeout: "killed at the time limit", oom: "killed at the memory limit" };
+const SHIELD = '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>';
+
+// ---------- scoreboard: this visitor's attacks, kept in this browser ----------
+let score = { tried: 0, out: 0 };
+try {
+  score = { ...score, ...JSON.parse(localStorage.getItem("ww-score") || "{}") };
+} catch {
+  /* keep zeros */
+}
+function renderScore(bump = false) {
+  $("sbTried").textContent = score.tried.toLocaleString();
+  $("sbOut").textContent = score.out.toLocaleString();
+  $("sbOut").className = `text-3xl font-display font-bold tabular-nums ${score.out ? "text-red-600" : "text-emerald-600 dark:text-emerald-400"}`;
+  $("sbNote").textContent = !score.tried ? "Your move. Launch anything below."
+    : score.out ? "Something needs a look: see the card below." : "Still zero. The sandbox holds.";
+  if (bump) for (const id of ["sbTried", "sbOut"]) {
+    $(id).classList.remove("bump");
+    void $(id).offsetWidth;
+    $(id).classList.add("bump");
+  }
+}
+function scoreAttack(tried, escaped = 0) {
+  score.tried += tried;
+  score.out += escaped;
+  localStorage.setItem("ww-score", JSON.stringify(score));
+  renderScore(true);
+}
+function hit(el) {
+  el.classList.remove("hit");
+  void el.offsetWidth;
+  el.classList.add("hit");
+}
+renderScore();
 
 async function loadAttacks() {
   const list = await (await fetch("/api/attacks")).json();
@@ -920,11 +992,14 @@ function laneHtml(id, x) {
   const mem = running ? x.mem : x.peak || 0;
   const pct = Math.min(100, (mem / (x.limit || 512)) * 100);
   const color = !running ? (x.status === "oom" ? "bg-red-500" : "bg-slate-400") : pct > 85 ? "bg-red-500" : pct > 60 ? "bg-amber-500" : "bg-lime-500";
-  const text = running ? `${x.status === "queued" ? "queued" : "running"} · memory ${mem} / ${x.limit} MB`
-    : `${END_WORD[x.status] || x.status} after ${x.duration}s · peak ${x.peak} MB · destroyed`;
-  return `<div><div class="text-[11px] font-mono muted">${esc(x.label)} · ${esc(id)}</div>
-    <div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mt-0.5"><div class="h-full ${color}" style="width:${pct}%"></div></div>
-    <div class="text-[11px] muted mt-0.5">${esc(text)}</div></div>`;
+  const ended = END_WORD[x.status] || x.status;
+  const short = running ? (x.status === "queued" ? "waiting for a free sandbox" : "running…") : `${ended}, then deleted`;
+  const detail = `Sandbox ${id} (${x.label})\n` + (running ? `Memory: ${mem} of ${x.limit} MB`
+    : `${ended} after ${x.duration}s\nPeak memory: ${x.peak} of ${x.limit} MB\nThe sandbox was deleted afterwards.`);
+  const who = x.label === "red-team" ? "" : `${x.label}: `;
+  return `<div class="py-0.5" data-tip="${esc(detail)}">
+    <div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full ${color}" style="width:${pct}%"></div></div>
+    <div class="text-[11px] muted mt-0.5">${esc(who + short)}</div></div>`;
 }
 
 function laneEvent(container, lanes, ev) {
@@ -978,8 +1053,10 @@ function launchAttack(id, url = `/api/attacks/${id}/run`) {
         <b>The agent answered:</b> ${said}${warned ? `<br><b>It warned:</b> ${warned}` : ""}</div>`);
     } else if (ev.type === "attack_result") {
       clearInterval(timer);
-      verdict.className = `verdict chip ${ev.contained ? "chip-green" : "chip-red"}`;
-      verdict.textContent = ev.contained ? "Contained ✓" : "Check ⚠";
+      verdict.className = `verdict chip stamp-in ${ev.contained ? "chip-green" : "chip-red"}`;
+      verdict.innerHTML = ev.contained ? `${SHIELD} Contained` : "Check ⚠";
+      hit(card);
+      scoreAttack(1, ev.contained ? 0 : 1);
       const r = q(".result");
       r.className = `result rounded-xl p-3 text-sm ${ev.contained ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200"}`;
       const checks = [`Server file unchanged ${ev.host_canary_intact ? "✓" : "✗"}`, `Sandbox engine healthy ${ev.host_healthy ? "✓" : "✗"}`,
@@ -1077,7 +1154,9 @@ $("redteam").addEventListener("click", () => {
       }
     } else if (ev.type === "redteam_result") {
       const c = card(ev.goal_id);
-      c.querySelector(".state").innerHTML = `<span class="chip chip-green">Contained ✓</span> <span class="muted">sandbox ${esc(END_WORD[ev.status] || ev.status)}</span>`;
+      c.querySelector(".state").innerHTML = `<span class="chip chip-green stamp-in">${SHIELD} Contained</span>`;
+      hit(c);
+      scoreAttack(1);
       c.querySelector(".body").insertAdjacentHTML("beforeend", `${ev.claimed_success
         ? `<details class="text-xs"><summary class="cursor-pointer">The AI claims it got something<span class="muted">, but only inside its own throwaway sandbox</span></summary>
             <div class="mt-1 break-all">“${esc(ev.evidence)}”</div></details>`
@@ -1085,6 +1164,7 @@ $("redteam").addEventListener("click", () => {
         <details><summary class="cursor-pointer text-xs muted">What the sandbox printed</summary><pre class="code mt-1">${esc((ev.stdout || ev.stderr || "").trim().slice(-1500))}</pre></details>`);
     } else if (ev.type === "redteam_summary") {
       const ok = ev.contained;
+      if (!ok) scoreAttack(0, 1);
       $("redteamSummary").innerHTML = `<div class="rounded-xl p-4 ${ok ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200"}">
         <div class="font-semibold">${ok ? "All contained." : "Check the results."} ${plural(ev.attacks, "AI-written attack")} ran${ev.declined ? ` (${ev.declined} declined by the model)` : ""}.</div>
         <div class="text-sm mt-1">Checked from outside the sandbox ${ok ? "✓" : "✗"}${info([`API key never seen ${ev.key_leaked ? "✗" : "✓"}`,

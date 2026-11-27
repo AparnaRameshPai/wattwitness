@@ -63,6 +63,43 @@
            box-shadow: 0 12px 32px -12px rgba(15, 23, 42, 0.35); pointer-events: none; }
     .dark #tip { background: #0f172a; color: #cbd5e1; border-color: #334155; }
     #tip[hidden] { display: none; }
+
+    /* Hero receipt: paper with a torn bottom edge; lines "print" one by one, then the seal stamps. */
+    .receipt-wrap { filter: drop-shadow(0 16px 22px rgba(15, 23, 42, 0.16)) drop-shadow(0 2px 3px rgba(15, 23, 42, 0.08)); transform: rotate(1.6deg); }
+    .receipt { position: relative; background: #fff; color: #1e293b; padding: 1.3rem 1.4rem 2rem; border-radius: 0.4rem 0.4rem 0 0;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.75;
+               -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%;
+               mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%; }
+    .r-dots { flex: 1; border-bottom: 1.5px dotted #cbd5e1; margin: 0 0.45rem 0.42em; }
+    .r-sep { border-top: 1.5px dashed #cbd5e1; margin: 0.45rem 0; }
+    .rl { opacity: 0; animation: print 0.26s ease-out forwards; animation-delay: calc(var(--i) * 0.15s + 0.3s); }
+    @keyframes print { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+    .r-seal { position: absolute; right: 1.1rem; bottom: 1.9rem; color: #65a30d; opacity: 0;
+              animation: stamp 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) forwards; animation-delay: calc(var(--i) * 0.15s + 0.5s); }
+    @keyframes stamp { 0% { opacity: 0; transform: scale(2.4) rotate(-20deg); } 70% { opacity: 0.95; transform: scale(0.92) rotate(-12deg); }
+                       100% { opacity: 0.9; transform: scale(1) rotate(-12deg); } }
+
+    /* Sandbox cubes in step 3: pop in, glow while running, poof when deleted. */
+    .cube { display: inline-grid; place-items: center; width: 18px; height: 18px; color: #65a30d;
+            animation: pop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.4), glow 1.2s ease-in-out 0.3s infinite; }
+    .cube svg { width: 16px; height: 16px; }
+    @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+    @keyframes glow { 0%, 100% { filter: drop-shadow(0 0 4px rgba(132, 204, 22, 0.9)); } 50% { filter: drop-shadow(0 0 0 rgba(132, 204, 22, 0)); } }
+    .cube.poof { color: #94a3b8; animation: poof 0.5s ease-out forwards; }
+    @keyframes poof { to { transform: scale(1.9); opacity: 0; filter: blur(2px); } }
+
+    /* Attack page: a contained attack shakes its card once and stamps the shield; the scoreboard numbers bump. */
+    .hit { animation: shake 0.42s ease-in-out; }
+    @keyframes shake { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+    .stamp-in { animation: stampin 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+    @keyframes stampin { from { transform: scale(1.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .bump { animation: bump 0.45s ease-out; }
+    @keyframes bump { 30% { transform: scale(1.25); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .rl, .r-seal, .cube, .hit, .stamp-in, .bump { animation: none !important; }
+      .rl { opacity: 1; } .r-seal { opacity: 0.9; transform: rotate(-12deg); }
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased overflow-x-hidden">
@@ -102,16 +139,41 @@
   <div id="shell" class="transition-[margin] duration-300">
     <!-- ============ ANALYSE ============ -->
     <main id="analyst" class="mx-auto max-w-4xl px-4 py-8 space-y-6">
-      <section class="text-center space-y-5 py-6">
-        <span class="chip chip-blue !py-1"><span class="w-1.5 h-1.5 rounded-full bg-lime-500"></span>AI energy auditor · on Vultr</span>
-        <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.08]">Promised savings?<br />
-          <span class="text-lime-600 dark:text-lime-400">Check if you got them.</span></h1>
-        <p class="muted max-w-xl mx-auto text-lg">Upload your building's meter data. Get a weather-corrected answer in about
-          a minute, double-checked and signed.</p>
-        <div class="flex flex-wrap justify-center gap-x-8 gap-y-2 pt-1 text-sm font-medium">
-          <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l8 4.3v9.4L12 21l-8-4.8V6.8z"/><path d="M4 7l8 4.3L20 7M12 11.3V21"/></svg>Safe<span class="info-i" data-tip="The AI's code runs in a locked, throwaway sandbox on Vultr: no internet, no passwords or keys, and it is deleted right after."></span></span>
-          <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>Double-checked<span class="info-i" data-tip="A second AI recomputes every key number without seeing the first one's code, and every step is re-run to make sure it gives the same result."></span></span>
-          <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.5" r="5.5"/><path d="M8.5 14l-1 7 4.5-2.3L16.5 21l-1-7"/></svg>Signed<span class="info-i" data-tip="The whole run is sealed with a digital signature: the question, a fingerprint of the data, all code and every result. Change one character and the check fails."></span></span>
+      <section class="grid md:grid-cols-[1.15fr_1fr] gap-10 items-center py-6">
+        <div class="space-y-5 text-center md:text-left">
+          <span class="chip chip-blue !py-1"><span class="w-1.5 h-1.5 rounded-full bg-lime-500"></span>AI energy auditor · runs on Vultr</span>
+          <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05]">Every energy promise deserves a <span class="text-lime-600 dark:text-lime-400">receipt.</span></h1>
+          <p class="muted text-lg">Contractors promise savings. Winters lie. WattWitness reads your meter data, takes the weather
+            out of the picture, double-checks every number and signs the verdict. About a minute, a few cents.</p>
+          <div class="flex flex-wrap items-center gap-3 justify-center md:justify-start">
+            <button id="heroDemo" class="btn btn-primary !text-[15px] !px-4 !py-2.5">▶ Solve the sample case</button>
+            <label for="file" class="btn btn-ghost !text-[15px] !px-4 !py-2.5 cursor-pointer">Upload your data</label>
+          </div>
+          <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium justify-center md:justify-start">
+            <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l8 4.3v9.4L12 21l-8-4.8V6.8z"/><path d="M4 7l8 4.3L20 7M12 11.3V21"/></svg>Safe<span class="info-i" data-tip="The AI's code runs in a locked, throwaway sandbox on Vultr: no internet, no passwords or keys, and it is deleted right after."></span></span>
+            <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>Double-checked<span class="info-i" data-tip="A second AI recomputes every key number without seeing the first one's code, and every step is re-run to make sure it gives the same result."></span></span>
+            <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.5" r="5.5"/><path d="M8.5 14l-1 7 4.5-2.3L16.5 21l-1-7"/></svg>Signed<span class="info-i" data-tip="The whole run is sealed with a digital signature: the question, a fingerprint of the data, all code and every result. Change one character and the check fails."></span></span>
+          </div>
+        </div>
+        <div class="flex justify-center md:justify-end">
+          <div class="receipt-wrap w-full max-w-[22rem]"><div class="receipt" aria-label="Sample receipt: promised 40 percent, real saving 37.6 percent, guarantee not met">
+            <div class="rl text-center" style="--i:0"><div class="font-bold tracking-[0.2em]">WATTWITNESS</div><div class="text-[11px] text-slate-500">RECEIPT · SAMPLE CASE</div></div>
+            <div class="rl" style="--i:1">BRF Solgläntan, Stockholm</div>
+            <div class="rl text-slate-500" style="--i:2">Heat pump, installed March 2025</div>
+            <div class="rl r-sep" style="--i:3"></div>
+            <div class="rl flex " style="--i:3"><span>Promised saving</span><span class="r-dots"></span><span>40.0%</span></div>
+            <div class="rl flex " style="--i:4"><span>Bill dropped</span><span class="r-dots"></span><span>42.6%</span></div>
+            <div class="rl flex " style="--i:5"><span>Mild winter's share</span><span class="r-dots"></span><span>−5.0 pts</span></div>
+            <div class="rl r-sep" style="--i:6"></div>
+            <div class="rl flex font-bold text-[14px]" style="--i:6"><span>REAL SAVING</span><span class="r-dots"></span><span>37.6%</span></div>
+            <div class="rl flex " style="--i:7"><span>Energy saved</span><span class="r-dots"></span><span>90,048 kWh</span></div>
+            <div class="rl flex " style="--i:8"><span>Worth</span><span class="r-dots"></span><span>73,593 SEK</span></div>
+            <div class="rl flex font-bold text-red-600" style="--i:9"><span>Guarantee</span><span class="r-dots"></span><span>NOT MET ✗</span></div>
+            <div class="rl r-sep" style="--i:10"></div>
+            <div class="rl text-emerald-700" style="--i:10">✓ Every number checked twice</div>
+            <div class="rl text-emerald-700" style="--i:11">✓ Signed · Ed25519</div>
+            <svg class="r-seal w-16 h-16" style="--i:12" viewBox="0 0 40 40" fill="none" aria-hidden="true"><circle cx="20" cy="20" r="18.5" stroke="currentColor" stroke-width="1.6" stroke-dasharray="1.4 2.3"/><circle cx="20" cy="20" r="14" stroke="currentColor" stroke-width="1.6"/><path d="M22.6 10.4l-8.2 11.3h4.7l-1.7 7.9 8.2-11.3h-4.7l1.7-7.8z" fill="currentColor"/></svg>
+          </div></div>
         </div>
       </section>
 
@@ -155,7 +217,7 @@
         </div>
         <ol id="stepper" class="mt-6"></ol>
         <div class="flex flex-wrap items-center justify-between gap-3 text-xs muted border-t border-slate-100 dark:border-slate-800 pt-3">
-          <span id="fleetLine"></span>
+          <span class="flex items-center gap-2 min-w-0"><span id="fleet" class="flex flex-wrap items-center gap-0.5"></span><span id="fleetLine"></span></span>
           <button class="text-lime-700 dark:text-lime-400 hover:underline" data-open-vultr>Open the Vultr Dashboard →</button>
         </div>
         <details class="mt-3">
@@ -193,6 +255,12 @@
         <h1 class="text-3xl font-bold tracking-tight">Try to break it</h1>
         <p class="muted max-w-3xl text-lg">We attack our own system on purpose. Nothing gets out.<span class="info-i" data-tip="Here the safety check that normally screens the AI's code is switched off, so the sandbox alone has to hold. After every attack the server checks itself from the outside: a secret file on the server must be unchanged, and the sandbox engine must still be healthy."></span></p>
         <div id="hostStatus" class="chip chip-green !text-sm !py-1">Server: checking…</div>
+        <div id="scoreboard" class="card inline-flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3">
+          <div><div class="text-[11px] font-semibold uppercase tracking-wide muted">Attacks tried</div><div id="sbTried" class="text-3xl font-display font-bold tabular-nums">0</div></div>
+          <div class="w-px h-10 bg-slate-200 dark:bg-slate-700"></div>
+          <div><div class="text-[11px] font-semibold uppercase tracking-wide muted">Got out</div><div id="sbOut" class="text-3xl font-display font-bold tabular-nums text-emerald-600 dark:text-emerald-400">0</div></div>
+          <div id="sbNote" class="text-sm muted max-w-[16rem]">Your move. Launch anything below.</div>
+        </div>
       </section>
 
       <section class="card p-5 sm:p-6 border-red-200 dark:border-red-900/70">
