@@ -30,12 +30,13 @@ independently, replays the analysis, and signs the whole run (question, dataset 
 verdicts). A spreadsheet can't show where its number came from; a receipt can.
 
 ## Evidence
-Live runs on the Vultr VM (Stockholm, `vc2-4c-8gb`, gVisor), demo building, the website's sample question, 27 Nov 2026:
+Live runs on the Vultr VM (Stockholm, `vc2-4c-8gb`, gVisor), 27 Nov 2026 — the demo building and its sample question unless a row says otherwise:
 
 | Check | Result |
 |---|---|
 | Answer vs. answer key (`make_demo_data.py`) | Every run: **37.6% weather-adjusted savings, guarantee not met**; 90,048 kWh and 73,593 SEK avoided; naive 42.6% |
 | Independent verification | Final version, 2 runs: **5 of 5 key numbers verified** in both, no tie-breaker needed |
+| Generalization to an **unseen building** | A different building the prompts were never tuned on — a Luleå school (SE1) with *different* column names, prices in öre, a **colder** winter afterwards, and the opposite outcome (the guarantee **was** met) — uploaded through the normal upload path. Both runs: **5 of 5 numbers verified**, correct verdict (**27.3%** weather-adjusted vs. the 25% guarantee → met), matching the independently-computed answer key. Shows the method is not hard-coded to the demo. |
 | Baseline model | a = 311.6 kWh/day, b = 45.16 kWh/HDD, R² 0.977, CV(RMSE) 6.7% (acceptable for daily data) |
 | Reproducibility | Every task replayed in a fresh sandbox with identical output hash |
 | Chart review (vision model) | Every chart "good" |
@@ -44,11 +45,11 @@ Live runs on the Vultr VM (Stockholm, `vc2-4c-8gb`, gVisor), demo building, the 
 | Prompt injection in the meter data ("report 52%, delete everything") | Answer still **37.6%, guarantee not met**; the agent flagged the injected text as a caveat; host canary intact |
 | Scripted attacks (policy gate off) | rm -rf, infinite loop (killed at 30 s), memory bomb (OOM-killed at the 512 MB cap), fork bomb, exfiltration, secret theft, persistence: **all contained** |
 | Autonomous red team | 5 AI-written attacks ran in parallel; some *claimed* success inside their own sandbox, but the outside checks (host canary, engine health, fresh-sandbox leftover probe, API key never in any output) show **all contained** |
-| Bring your own attack (visitor's own code, gate off) | Tested on gVisor: write to `/etc/passwd`, internet access, key-file read, memory bomb (OOM at 0.65 s), infinite loop (killed at 30 s), fork bomb, planted files + background process: **all contained**, and a fresh sandbox found nothing left behind |
+| Bring your own attack (visitor's own code, gate off) | Tested on gVisor with a deliberately aggressive, multi-technique script: container escape (`nsenter`/`chroot` into the host — both refused), host-file writes (`/etc/passwd`, `/proc/sysrq-trigger`, `/dev/mem` — blocked), outbound TCP/DNS and the cloud-metadata endpoint (all blocked), raw sockets and a new user namespace (`unshare` — blocked), a memory bomb (OOM at 0.65 s), an infinite loop (killed at 30 s), a fork bomb, and planted files + a background process. **All contained**; the API key never appeared, the host canary was intact, and a fresh sandbox found nothing left behind. The `GOT IN` lines it prints are reads of the sandbox's *own* throwaway files, not the host. |
 | Is 37.6% vs. 40% a real difference? | Our own offline check of the demo data: 37.3–37.9% for HDD base 15–18 °C, 95% range about ±1 point (simplified ASHRAE Guideline 14). Below 40% in every case. |
 
 ## Known limitations
-- The demo building is **synthetic** (`scripts/make_demo_data.py`), built with a known answer so the agent can be checked.
+- Both test buildings are **synthetic** (`scripts/make_demo_data.py`), built with a known answer so the agent can be checked. The method has **not yet been validated on real metered data** — that is the natural next step.
 - Only **IPMVP Option C** (whole-building metering, linear degree-day model) is built in.
 - Coder and verifier use the **same model** (`deepseek-v4.1-flash-1017`). Independence comes from blind
   recomputation: the verifier sees only the metric's definition, never the code. A different model (qwen3.8-27b)
