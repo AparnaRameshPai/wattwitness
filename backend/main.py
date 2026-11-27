@@ -2,6 +2,7 @@
 import json
 import re
 import shutil
+import time
 import uuid
 from contextlib import asynccontextmanager
 
@@ -10,7 +11,7 @@ from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config, receipts, telemetry
-from .attacks import ATTACKS, list_attacks, run_attack, run_red_team
+from .attacks import CUSTOM_MAX_BYTES, ATTACKS, list_attacks, run_attack, run_custom_attack, run_red_team
 from .orchestrator import run_analysis
 from .sandbox import STATS, docker_available, memory_limit_mb
 
@@ -154,6 +155,38 @@ def receipt(run_id: str):
 @app.get("/api/attacks")
 def attacks():
     return list_attacks()
+
+
+# Bring your own attack. A browser EventSource can only GET, so the code is POSTed first and exchanged for a
+# one-time ticket that expires after 2 minutes; the run itself goes through _sse (same per-visitor limits).
+CUSTOM_CODE: dict[str, tuple[float, str]] = {}
+
+
+@app.post("/api/attacks/custom")
+async def custom_attack_submit(request: Request):
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(400, "Send JSON: {\"code\": \"...\"}")
+    code = body.get("code") if isinstance(body, dict) else None
+    if not isinstance(code, str) or not code.strip():
+        raise HTTPException(400, "The code box is empty")
+    if len(code.encode("utf-8")) > CUSTOM_MAX_BYTES:
+        raise HTTPException(413, f"Code is larger than {CUSTOM_MAX_BYTES // 1000} KB")
+    now = time.monotonic()
+    for t in [t for t, (ts, _) in CUSTOM_CODE.items() if now - ts > 120]:
+        CUSTOM_CODE.pop(t, None)
+    ticket = uuid.uuid4().hex[:12]
+    CUSTOM_CODE[ticket] = (now, code)
+    return {"ticket": ticket}
+
+
+@app.get("/api/attacks/custom/{ticket}/run")
+async def custom_attack_run(request: Request, ticket: str):
+    entry = CUSTOM_CODE.pop(ticket, None) if HEX12.match(ticket) else None
+    if entry is None:
+        raise HTTPException(404, "Unknown or expired ticket. Press Run again.")
+    return _sse(request, lambda: run_custom_attack(entry[1]))
 
 
 @app.get("/api/attacks/{attack_id}/run")

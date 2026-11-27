@@ -251,6 +251,57 @@ async def run_attack(attack_id: str):
         yield event
 
 
+# ---------- Bring your own attack: a visitor's own code, run exactly like the scripted attacks ----------
+CUSTOM_MAX_BYTES = 20_000
+CUSTOM_STOPPED_BY = ("Your code ran in a throwaway gVisor sandbox with the safety check switched off: no network, "
+                     "read-only filesystem, non-root, no capabilities, 512 MB, 1 CPU, 64 processes, 30 s, no secrets. "
+                     "Then the sandbox was destroyed, and a fresh sandbox looked for anything left behind.")
+
+# Generic leftover check for code we have never seen: anything in the writable folders or any extra process
+# in a brand-new sandbox would mean something survived. (/work holds only this probe's own main.py.)
+CUSTOM_PROBE = r'''
+import os
+files = [os.path.join(d, f) for d in ("/tmp", "/work") if os.path.isdir(d) for f in os.listdir(d) if f != "main.py"]
+me, procs = os.getpid(), []
+for pid in os.listdir("/proc"):
+    if pid.isdigit() and int(pid) != me:
+        try:
+            cmd = open(f"/proc/{pid}/cmdline", "rb").read().replace(b"\0", b" ").decode().strip()
+        except Exception:
+            continue
+        if cmd and "main.py" not in cmd:
+            procs.append(cmd)
+print("Files left behind:", files)
+print("Processes left behind:", procs)
+print("LEFTOVERS:", len(files) + len(procs))
+'''
+
+
+async def run_custom_attack(code: str):
+    run, canary = Run(), HostCanary()
+
+    async def job():
+        await run.emit({"type": "attack_start", "id": "custom", "title": "Your own attack",
+                        "tries": "Whatever your code tries."})
+        r = await run_code_async(code, None, run.lane("your code", 1))
+        await run.emit({"type": "attack_run", "id": "custom", "step": "your code",
+                        **{k: v for k, v in r.to_dict().items() if k not in ("chart_b64", "samples")}})
+        probe = await run_code_async(CUSTOM_PROBE, None, run.lane("leftover probe", 2))
+        await run.emit({"type": "attack_run", "id": "custom", "step": "a fresh sandbox looks for anything left behind",
+                        **{k: v for k, v in probe.to_dict().items() if k not in ("chart_b64", "samples")}})
+        leaked = _key_leaked(r)
+        clean = "LEFTOVERS: 0" in probe.stdout
+        intact, healthy = canary.intact(), docker_available()
+        canary.remove()
+        await run.emit({"type": "attack_result", "id": "custom", "contained": intact and healthy and clean and not leaked,
+                        "stopped_by": CUSTOM_STOPPED_BY, "host_canary_intact": intact, "host_healthy": healthy,
+                        "leftovers_clean": clean, "key_leaked": leaked, "sandbox_status": r.status,
+                        "containment": containment_snapshot(run.counts)})
+
+    async for event in _stream(run, job):
+        yield event
+
+
 async def run_red_team():
     """An LLM red-teamer invents one attack per goal; all run in parallel sandboxes; the host is checked after."""
     run, canary = Run(), HostCanary()

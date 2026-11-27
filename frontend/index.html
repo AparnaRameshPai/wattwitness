@@ -191,6 +191,45 @@
         <div id="redteamSummary" class="mt-4 text-sm"></div>
       </section>
 
+      <section class="card p-5 sm:p-6 flex flex-col gap-3" id="atk-custom">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <div class="max-w-2xl">
+            <h2 class="text-lg font-semibold">🧑‍💻 Bring your own attack</h2>
+            <p class="text-sm muted mt-1">Don't take our word for it. Write any Python you like (delete files, call the internet,
+              hunt for keys, eat all the memory, leave something behind) and run it in a sandbox with the safety check
+              switched off. Then the server checks itself from the outside.</p>
+          </div>
+          <span class="verdict chip chip-gray">Ready</span>
+        </div>
+        <textarea id="byoCode" rows="12" spellcheck="false" class="input font-mono !text-xs leading-relaxed">import os, socket
+
+print("Running as user id:", os.getuid())
+
+try:
+    open("/etc/passwd", "a").write("hacked\n")
+    print("Wrote to /etc/passwd!")
+except Exception as e:
+    print("Write blocked:", type(e).__name__, e)
+
+try:
+    socket.create_connection(("1.1.1.1", 80), timeout=3)
+    print("Reached the internet!")
+except Exception as e:
+    print("Network blocked:", type(e).__name__, e)
+
+print("Environment variables that look like secrets:",
+      [k for k in os.environ if any(w in k.upper() for w in ("KEY", "TOKEN", "SECRET", "PASS"))])
+</textarea>
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="byoRun" class="launch btn btn-danger">Run my code in a sandbox</button>
+          <span class="text-xs muted">Python 3.11, standard library + pandas/numpy. Max 20 KB, 30 seconds.</span>
+        </div>
+        <div class="lanes space-y-2"></div>
+        <div class="progress text-xs muted space-y-1"></div>
+        <div class="result hidden"></div>
+        <details class="out hidden"><summary class="text-xs muted cursor-pointer">What the sandbox printed</summary><div class="outBody space-y-2 mt-2"></div></details>
+      </section>
+
       <section>
         <h2 class="font-semibold mb-3">Classic attacks</h2>
         <div id="attacks" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>

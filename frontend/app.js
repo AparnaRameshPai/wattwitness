@@ -829,7 +829,7 @@ function laneEvent(container, lanes, ev) {
   container.innerHTML = Object.entries(lanes).slice(-6).map(([id, v]) => laneHtml(id, v)).join("");
 }
 
-function launchAttack(id) {
+function launchAttack(id, url = `/api/attacks/${id}/run`) {
   const card = $(`atk-${id}`);
   const q = (sel) => card.querySelector(sel);
   const btn = q(".launch");
@@ -845,7 +845,7 @@ function launchAttack(id) {
   verdict.textContent = "Attacking…";
   const lanes = {};
   let got = false;
-  const es = new EventSource(`/api/attacks/${id}/run`);
+  const es = new EventSource(url);
   const end = () => {
     clearInterval(timer);
     es.close();
@@ -876,7 +876,8 @@ function launchAttack(id) {
       const r = q(".result");
       r.className = `result rounded-xl p-3 text-sm ${ev.contained ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200"}`;
       r.innerHTML = `<div class="font-medium">${ev.contained ? "Contained." : "Needs a look."}</div><div class="mt-0.5">${esc(ev.stopped_by)}</div>
-        <div class="text-xs mt-1.5 opacity-80">Checked from outside: server file unchanged ${ev.host_canary_intact ? "✓" : "✗"} · sandbox engine healthy ${ev.host_healthy ? "✓" : "✗"}</div>`;
+        <div class="text-xs mt-1.5 opacity-80">Checked from outside: server file unchanged ${ev.host_canary_intact ? "✓" : "✗"} · sandbox engine healthy ${ev.host_healthy ? "✓" : "✗"}${
+          ev.leftovers_clean === undefined ? "" : ` · nothing left behind ${ev.leftovers_clean ? "✓" : "✗"} · API key never seen ${ev.key_leaked ? "✗" : "✓"}`}</div>`;
     } else if (ev.type === "error") {
       q(".progress").insertAdjacentHTML("beforeend", `<div class="text-red-600">Error: ${esc(ev.message)}</div>`);
     } else if (ev.type === "done") {
@@ -896,6 +897,29 @@ function launchAttack(id) {
     }
   };
 }
+
+// ---------- bring your own attack ----------
+$("byoRun").addEventListener("click", async () => {
+  const card = $("atk-custom");
+  const showError = (msg) => {
+    card.querySelector(".verdict").className = "verdict chip chip-amber";
+    card.querySelector(".verdict").textContent = "Not run";
+    card.querySelector(".progress").innerHTML = `<div class="text-amber-700 dark:text-amber-300">${esc(msg)}</div>`;
+  };
+  $("byoRun").disabled = true;
+  try {
+    const resp = await fetch("/api/attacks/custom", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: $("byoCode").value }),
+    });
+    const d = await resp.json().catch(() => ({}));
+    if (!resp.ok) return showError(d.detail || "Could not submit the code.");
+    launchAttack("custom", `/api/attacks/custom/${d.ticket}/run`);
+  } catch {
+    showError("Could not reach the server. Please try again.");
+  } finally {
+    if (!card.querySelector(".verdict").textContent.startsWith("Attacking")) $("byoRun").disabled = false;
+  }
+});
 
 // ---------- the AI hacker (red team) ----------
 $("redteam").addEventListener("click", () => {
