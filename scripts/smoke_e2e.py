@@ -1,4 +1,4 @@
-"""End-to-end demo check against a running Receipts server (local or the public URL). Standard library only.
+"""End-to-end demo check against a running WattWitness server (local or the public URL). Standard library only.
 
     python -m scripts.smoke_e2e https://<demo-url>              # analyst run + receipt + every scripted attack
     python -m scripts.smoke_e2e https://<demo-url> --redteam    # ... plus the autonomous red team

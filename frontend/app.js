@@ -1,4 +1,4 @@
-// Receipts frontend: plain JavaScript, no build step.
+// WattWitness frontend: plain JavaScript, no build step.
 // Layout: a guided story (data -> question -> watch -> answer), an attack page, and a Vultr sidebar that shows,
 // live, how the run uses the Vultr VM, Vultr Serverless Inference and the sandboxes.
 "use strict";

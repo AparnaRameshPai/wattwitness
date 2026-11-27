@@ -21,7 +21,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Receipts", lifespan=lifespan)
+app = FastAPI(title="WattWitness", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=config.FRONTEND_DIR), name="static")
 
 HEX12 = re.compile(r"^[a-f0-9]{12}$")

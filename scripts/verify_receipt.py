@@ -1,4 +1,4 @@
-"""Verify a Receipts receipt offline, without trusting the server.
+"""Verify a WattWitness receipt offline, without trusting the server.
 
     python -m scripts.verify_receipt receipt-<run_id>.json [public_key.pem]
 

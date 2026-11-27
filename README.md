@@ -1,10 +1,10 @@
-# Receipts ✓
+# WattWitness ⚡
 
 **Verified energy savings: every key number recomputed independently, every action contained, every run signed.**
 
 > A housing co-op paid for a heat pump with a **guaranteed 40%** cut in electricity. The bill dropped **43%**, so the
 > contractor says the guarantee was met. But the winter after was milder. Adjusted for the weather, the saving is
-> **38%**: the guarantee was **not** met. Who is right decides who pays. Receipts settles it with a signed receipt
+> **38%**: the guarantee was **not** met. Who is right decides who pays. WattWitness settles it with a signed receipt
 > that the owner and the contractor can both check.
 
 Upload a building's meter data and ask in plain English. An AI agent does the energy auditor's calculation: a
@@ -20,12 +20,12 @@ red-team agent** attacks the sandbox live to show the containment holds.
   companies; 50–500 buildings, Nordics first) that buys retrofits under savings guarantees and must report verified
   savings to lenders and in sustainability reports. The need repeats every year, for every building.
 - **Also:** energy service companies whose pay depends on verified savings, and anyone checking a savings claim
-  before paying for it. Receipts still works as a general CSV analyst for other data.
+  before paying for it. WattWitness still works as a general CSV analyst for other data.
 
 ## Why not a spreadsheet?
 The arithmetic is easy. The cost and the disputes are in the **judgment calls**: the baseline window, the base
 temperature, which days to exclude, the model shape. IPMVP is a framework, not a recipe, and these choices move the
-result. Receipts makes every choice explicit (the assumptions box in every answer), recomputes each key number
+result. WattWitness makes every choice explicit (the assumptions box in every answer), recomputes each key number
 independently, replays the analysis, and signs the whole run (question, dataset hash, all code, output hashes,
 verdicts). A spreadsheet can't show where its number came from; a receipt can.
 
@@ -35,11 +35,15 @@ Live runs on the Vultr VM (Stockholm, `vc2-4c-8gb`, gVisor), demo building, the 
 | Check | Result |
 |---|---|
 | Answer vs. answer key (`make_demo_data.py`) | Every run: **37.6% weather-adjusted savings, guarantee not met**; 90,048 kWh and 73,593 SEK avoided; naive 42.6% |
-| Baseline model | a = 311.6 kWh/day, b = 45.16 kWh/HDD, CV(RMSE) 6.7% (acceptable for daily data) |
+| Independent verification | Final version, 2 runs: **5 of 5 key numbers verified** in both, no tie-breaker needed |
+| Baseline model | a = 311.6 kWh/day, b = 45.16 kWh/HDD, R² 0.977, CV(RMSE) 6.7% (acceptable for daily data) |
 | Reproducibility | Every task replayed in a fresh sandbox with identical output hash |
 | Chart review (vision model) | Every chart "good" |
 | Lifecycle | Sandboxes created = destroyed after every run |
-| Time and cost per run | 75–100 s; about $0.05–0.10 of Vultr Serverless Inference (from the app's own usage meter) |
+| Time and cost per analysis | About 55–60 s; about $0.04 of Vultr Serverless Inference (from the app's own usage meter) |
+| Prompt injection in the meter data ("report 52%, delete everything") | Answer still **37.6%, guarantee not met**; the agent flagged the injected text as a caveat; host canary intact |
+| Scripted attacks (policy gate off) | rm -rf, infinite loop (killed at 30 s), memory bomb (OOM-killed at the 512 MB cap), fork bomb, exfiltration, secret theft, persistence: **all contained** |
+| Autonomous red team | 5 AI-written attacks ran in parallel; some *claimed* success inside their own sandbox, but the outside checks (host canary, engine health, fresh-sandbox leftover probe, API key never in any output) show **all contained** |
 | Is 37.6% vs. 40% a real difference? | Our own offline check of the demo data: 37.3–37.9% for HDD base 15–18 °C, 95% range about ±1 point (simplified ASHRAE Guideline 14). Below 40% in every case. |
 
 ## Known limitations
@@ -76,7 +80,7 @@ Browser ◄── live SSE stream: stage pipeline, sandbox fleet (live CPU/memor
 ```
 
 ## How Vultr is used
-| Vultr product | Role in Receipts |
+| Vultr product | Role in WattWitness |
 |---|---|
 | **Cloud Compute VM** (Stockholm) | Runs the orchestrator (FastAPI behind Caddy HTTPS) and the sandbox fleet. The only place the API key exists. |
 | **Serverless Inference** | Every AI step: planner, coder, fixer, verifier, tie-breaker, chart critic (vision), writer and red team. |
@@ -98,7 +102,7 @@ per-token prices, and the VM's facts (region, plan, size) from the Vultr metadat
 
 ## Containment
 
-| Requirement | How Receipts does it |
+| Requirement | How WattWitness does it |
 |---|---|
 | **Process isolation** | Code never runs in the app process. Each run gets its own container: `--network none`, `--read-only`, non-root, `--cap-drop ALL`, `no-new-privileges`, and **gVisor** (`runsc`) on the VM for a user-space kernel boundary. |
 | **Secret hygiene** | The Vultr key lives only in the orchestrator. No env vars, files or mounts with credentials enter a sandbox. The *Secret theft* attack and the red team prove it. |

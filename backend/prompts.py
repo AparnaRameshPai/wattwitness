@@ -14,16 +14,19 @@ UNTRUSTED_DATA_RULE = (
 ENERGY_SAVINGS_METHOD = (
     "ENERGY SAVINGS METHOD (use it whenever the question is about energy savings from a retrofit, measure or "
     "guarantee; ignore it otherwise). Follow IPMVP Option C (whole-building metering): "
-    "(1) Baseline period = before the measure, reporting period = after it, as given in the question; if not "
-    "given, use the 12 months before and the 12 months after the installation. Exclude the installation days "
-    "and every row with missing consumption, and report how many rows were excluded. "
+    "(1) Baseline period = before the measure, reporting period = after it, as given in the question. If not "
+    "given, the baseline is EXACTLY the 12 months ending the day before installation starts, and the reporting "
+    "period is EXACTLY the 12 months starting the day after installation ends (e.g. installation 1-14 March "
+    "2025: baseline 2024-03-01..2025-02-28, reporting 2025-03-15..2026-03-14), even if the file has more data. "
+    "Exclude the installation days and every row with missing consumption, and report how many rows were excluded. "
     "(2) Weather adjustment: heating degree days HDD = max(0, 17 - daily mean outdoor temperature in degrees C) "
     "(Swedish standard base 17). Fit daily_kwh = a + b * HDD by ordinary least squares on the baseline period "
     "only. Report a, b, R-squared and CV(RMSE) = RMSE / mean daily kWh (daily models below 20% are acceptable). "
     "(3) Adjusted baseline = a + b * HDD for each valid reporting-period day. Avoided energy (kWh) = "
     "sum(adjusted baseline) - sum(actual). Savings percent = avoided energy / sum(adjusted baseline) * 100. "
     "(4) Avoided cost (SEK) = sum over valid reporting days of (adjusted baseline - actual) * that day's spot "
-    "price; it covers the spot energy price only, not grid fees, energy tax or VAT. "
+    "price (if the price is in ore per kWh, divide by 100 to get SEK); it covers the spot energy price only, "
+    "not grid fees, energy tax or VAT. "
     "(5) Also compute the naive savings percent = (1 - mean daily kWh in the reporting period / mean daily kWh "
     "in the baseline period) * 100, so the user sees how much the weather changed the picture. Fewer heating "
     "degree days in the reporting period means it was MILDER (warmer) than the baseline, which flatters naive savings. "
@@ -39,6 +42,10 @@ Each task must be answerable with pandas/numpy/scipy code on the dataset alone.
 At most two tasks should produce a chart.
 For an energy savings question, each task must be self-contained (fit the baseline model itself if it needs it),
 and one task should chart daily kWh against HDD (or over time) before and after the measure.
+Only the first five metrics (in task order) are independently verified, so for an energy savings question:
+task 1 is the savings task, and its instructions must say to report exactly these metrics in this order:
+weather-adjusted savings percent, avoided energy in kWh, avoided cost in SEK. Every other task reports at most
+ONE metric (for example CV(RMSE) of the baseline model).
 
 {ENERGY_SAVINGS_METHOD}
 
