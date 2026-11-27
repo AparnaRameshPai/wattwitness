@@ -15,8 +15,8 @@ const lastLine = (s) => (String(s || "").trim().split("\n").filter(Boolean).pop(
 const BUSY = "The demo is busy, or you already have a run in progress. Please try again in a moment.";
 
 const STATUS_CHIP = { verified: "chip-green", corrected: "chip-amber", unverified: "chip-red" };
-const STATUS_WORD = { verified: "✓ Confirmed", corrected: "🛠 Corrected", unverified: "? Not confirmed" };
-const STATUS_ICON = { verified: "✓", corrected: "🛠", unverified: "?" };
+const STATUS_WORD = { verified: "✓ Confirmed", corrected: "± Corrected", unverified: "? Not confirmed" };
+const STATUS_ICON = { verified: "✓", corrected: "±", unverified: "?" };
 const humanize = (name) => String(name || "").replace(/_/g, " ");
 
 // ---------- theme ----------
@@ -165,7 +165,7 @@ function renderSidebar() {
 
 function node(icon, title, sub, on, note = "") {
   return `<div class="node ${on ? "node-on" : ""}">
-    <div class="flex items-center gap-2"><span class="text-lg">${icon}</span><span class="font-medium text-sm">${title}</span>
+    <div class="flex items-center gap-2"><span class="seal shrink-0">${icon}</span><span class="font-medium text-sm">${title}</span>
       ${on ? '<span class="ml-auto w-2 h-2 rounded-full bg-lime-400 pulse-dot"></span>' : ""}</div>
     <div class="text-xs muted mt-1">${sub}</div>${note ? `<div class="text-[11px] muted mt-1">${note}</div>` : ""}</div>`;
 }
@@ -183,15 +183,21 @@ function renderDiagram() {
   const roles = [...new Set([...live.inflight.values()].map((c) => c.role))];
   const where = [vm.region, vm.country].filter(Boolean).join(", ");
   const machine = [where, vm.plan, vm.cpus && `${vm.cpus} vCPU`, vm.memory_gb && `${vm.memory_gb} GB`].filter(Boolean).join(" · ");
+  const ic = {
+    browser: '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18"/></svg>',
+    vm: '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M6.5 7.5h.01M6.5 16.5h.01"/></svg>',
+    cpu: '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9.5 3.5v2M14.5 3.5v2M9.5 18.5v2M14.5 18.5v2M3.5 9.5h2M3.5 14.5h2M18.5 9.5h2M18.5 14.5h2"/></svg>',
+    box: '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.5l8 4.3v9.4L12 21l-8-4.8V6.8z"/><path d="M4 7l8 4.3L20 7M12 11.3V21"/></svg>',
+  };
   $("diagram").innerHTML =
-    node("🌐", "Your browser", "This page. Progress streams in live over HTTPS.", busy) +
+    node(ic.browser, "Your browser", "This page. Progress streams in live over HTTPS.", busy) +
     conn("HTTPS · Caddy + Let's Encrypt", busy) +
-    node("🖥️", "Vultr Cloud Compute VM", esc(machine || "loading…"), busy,
+    node(ic.vm, "Vultr Cloud Compute VM", esc(machine || "loading…"), busy,
       "Runs the orchestrator: plans the work, sends it out, checks the results. Holds the only API key.") +
     `<div class="grid grid-cols-2 gap-3">
-       <div>${conn("API calls", nIn > 0)}${node("🧠", "Vultr Serverless Inference",
+       <div>${conn("API calls", nIn > 0)}${node(ic.cpu, "Vultr Serverless Inference",
          nIn ? `${plural(nIn, "model call")} running: ${esc(roles.join(", "))}` : "Idle. Called for every AI step.", nIn > 0)}</div>
-       <div>${conn("Docker + gVisor", nSbx > 0)}${node("📦", "Sandboxes on the VM",
+       <div>${conn("Docker + gVisor", nSbx > 0)}${node(ic.box, "Sandboxes on the VM",
          `${nSbx} running · max ${sb.max_parallel ?? "–"} at once`, nSbx > 0, "No network, no secrets, destroyed after each use.")}</div>
      </div>`;
 }
@@ -613,8 +619,8 @@ function stepExtra(key) {
   if (key === "assure") {
     const chips = [
       ...run.metrics.map((m) => `<span class="chip ${STATUS_CHIP[m.status]}" title="${esc(m.description)}">${STATUS_WORD[m.status]}: ${esc(m.name)}</span>`),
-      ...Object.values(run.replays).map((r) => `<span class="chip ${r.reproducible ? "chip-green" : "chip-red"}">🔁 Task ${r.task_id} ${r.reproducible ? "re-ran identically" : "re-ran differently"}</span>`),
-      ...Object.values(run.reviews).map((r) => `<span class="chip ${r.verdict === "good" ? "chip-green" : "chip-amber"}">👁 Chart ${r.task_id} ${r.verdict === "good" ? "looks right" : "has issues"}</span>`),
+      ...Object.values(run.replays).map((r) => `<span class="chip ${r.reproducible ? "chip-green" : "chip-red"}">${MINI.replay} Task ${r.task_id} ${r.reproducible ? "re-ran identically" : "re-ran differently"}</span>`),
+      ...Object.values(run.reviews).map((r) => `<span class="chip ${r.verdict === "good" ? "chip-green" : "chip-amber"}">${MINI.eye} Chart ${r.task_id} ${r.verdict === "good" ? "looks right" : "has issues"}</span>`),
     ];
     return chips.length ? `<div class="mt-2 flex flex-wrap gap-1.5">${chips.join("")}</div>` : "";
   }
@@ -624,6 +630,15 @@ function stepExtra(key) {
 // =====================================================================================================
 // ANALYSE: step 4 (the answer)
 // =====================================================================================================
+// Small inline icons that inherit the chip's text colour (currentColor), so they tint with each chip.
+const MINI = {
+  check: '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 6.5"/></svg>',
+  replay: '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9a8 8 0 0 1 13.4-3.4L20.5 8M20.5 3.5V8h-4.5"/><path d="M20.5 15a8 8 0 0 1-13.4 3.4L3.5 16M3.5 20.5V16H8"/></svg>',
+  eye: '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5 10 6.5 10 6.5-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  box: '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 2.5l8 4.3v9.4L12 21l-8-4.8V6.8z"/><path d="M4 7l8 4.3L20 7M12 11.3V21"/></svg>',
+  bolt: '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>',
+  seal: '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.5" r="5"/><path d="M8.5 13.5l-1 7 4.5-2.2 4.5 2.2-1-7"/></svg>',
+};
 function badge(tone, text, title = "") {
   return `<span class="chip ${tone} !text-sm !px-3 !py-1" title="${esc(title)}">${text}</span>`;
 }
@@ -641,15 +656,15 @@ function renderAnswer() {
   const nSbx = Object.keys(run.sbx).length;
 
   $("badges").innerHTML = [
-    total ? badge(confirmed === total ? "chip-green" : "chip-amber", `✓ ${confirmed}/${total} key numbers independently confirmed${corrected ? ` (${corrected} corrected)` : ""}`,
+    total ? badge(confirmed === total ? "chip-green" : "chip-amber", `${MINI.check} ${confirmed}/${total} key numbers independently confirmed${corrected ? ` (${corrected} corrected)` : ""}`,
       "A second AI, which never saw the original code, recomputed each number in a fresh sandbox.") : "",
-    reps.length ? badge(repOk === reps.length ? "chip-green" : "chip-amber", `🔁 ${repOk}/${reps.length} results reproduced exactly`,
+    reps.length ? badge(repOk === reps.length ? "chip-green" : "chip-amber", `${MINI.replay} ${repOk}/${reps.length} results reproduced exactly`,
       "Each task was run again in a brand-new sandbox. The output had to be identical.") : "",
-    revs.length ? badge(revOk === revs.length ? "chip-green" : "chip-amber", `👁 ${revOk}/${revs.length} charts passed review`,
+    revs.length ? badge(revOk === revs.length ? "chip-green" : "chip-amber", `${MINI.eye} ${revOk}/${revs.length} charts passed review`,
       "A vision model looked at each chart for mistakes or misleading axes.") : "",
-    badge("chip-gray", `📦 ${nSbx} sandboxes used, all destroyed`),
-    run.cost ? badge("chip-blue", `⚡ ${usd(run.cost)} of AI on Vultr`, `${run.calls} calls to Vultr Serverless Inference`) : "",
-    run.sealed ? badge("chip-gray", "🔏 Signed receipt") : "",
+    badge("chip-gray", `${MINI.box} ${nSbx} sandboxes used, all destroyed`),
+    run.cost ? badge("chip-blue", `${MINI.bolt} ${usd(run.cost)} of AI on Vultr`, `${run.calls} calls to Vultr Serverless Inference`) : "",
+    run.sealed ? badge("chip-gray", `${MINI.seal} Signed receipt`) : "",
   ].join("");
 
   $("answer").innerHTML = (r.summary || []).map((s, i) => {
@@ -725,7 +740,7 @@ python -m scripts.verify_receipt receipt-${esc(run.sealed.run_id)}.json public-k
 
 // ---------- proof modal ----------
 function metricProof(m) {
-  return `<div class="rounded-xl border border-violet-200 dark:border-violet-900 p-4 space-y-1.5">
+  return `<div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-1.5">
     <div class="flex flex-wrap items-center gap-2"><span class="font-medium">Check of <span class="font-mono">${esc(m.name)}</span></span>
       <span class="chip ${STATUS_CHIP[m.status]}">${STATUS_WORD[m.status]}</span></div>
     <div class="text-xs muted">${esc(m.description)}</div>
