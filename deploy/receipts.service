@@ -1,0 +1,16 @@
+[Unit]
+Description=Receipts agent backend
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+# Runs as the deploying (non-root) user, who is in the docker group.
+User=__APP_USER__
+WorkingDirectory=__APP_DIR__
+# The Vultr Serverless Inference key lives only in this root-owned file, never in the repo folder.
+EnvironmentFile=-/etc/agent/inference.env
+ExecStart=__APP_DIR__/.venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

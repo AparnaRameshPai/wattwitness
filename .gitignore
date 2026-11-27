@@ -1,0 +1,10 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+data/
+
+# Local smoke-test output
+receipt-*.json
+public-key.pem
