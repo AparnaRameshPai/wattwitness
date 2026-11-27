@@ -38,8 +38,8 @@
       .side-h { @apply text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-3; }
       .node { @apply rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-950 transition; }
       .node-on { @apply border-lime-400 ring-2 ring-lime-400/30 bg-lime-50 dark:bg-lime-400/10; }
-      .tab { @apply px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white; }
-      .tab-on { @apply bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white; }
+      .tab { @apply px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition; }
+      .tab-on { @apply bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-700; }
       .code { @apply bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs overflow-auto max-h-80 font-mono; }
       .suggest { @apply rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1 text-xs text-left hover:border-lime-400 hover:text-lime-700 dark:hover:text-lime-300 transition; }
       .seal { @apply text-lime-500 dark:text-lime-400; }
@@ -77,9 +77,9 @@
           <div class="text-[10px] uppercase tracking-[0.14em] muted">Verified energy savings</div>
         </div>
       </div>
-      <nav class="sm:ml-6 flex gap-1 whitespace-nowrap">
+      <nav class="sm:ml-5 flex gap-0.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/70 whitespace-nowrap">
         <button data-tab="analyst" class="tab">Analyse</button>
-        <button data-tab="lab" class="tab"><span class="sm:hidden">Break it</span><span class="hidden sm:inline">Try to break it</span></button>
+        <button data-tab="lab" class="tab"><span class="sm:hidden">Attack</span><span class="hidden sm:inline">Try to break it</span></button>
       </nav>
       <div class="ml-auto flex items-center gap-2">
         <span id="health" class="chip chip-gray hidden sm:inline-flex">checking…</span>
@@ -97,12 +97,12 @@
     <main id="analyst" class="mx-auto max-w-4xl px-4 py-8 space-y-6">
       <section class="text-center space-y-5 py-4">
         <span class="chip chip-blue !py-1"><span class="w-1.5 h-1.5 rounded-full bg-lime-400"></span>Weather-adjusted · IPMVP · cryptographically signed</span>
-        <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05]">Did the retrofit really<br class="hidden sm:block" />
-          save energy? <span class="text-lime-500 dark:text-lime-400">Prove it.</span></h1>
-        <p class="muted max-w-2xl mx-auto text-base">Upload your building's meter data. An AI checks a contractor's savings
-          promise the way an energy auditor would — weather-adjusted, the IPMVP way — runs every line of its code in
-          locked-down, throwaway sandboxes on Vultr, re-checks every key number, and signs the result: a savings receipt
-          the owner and the contractor can both verify.</p>
+        <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05]">The upgrade promised lower bills.<br class="hidden sm:block" />
+          Did it deliver? <span class="text-lime-500 dark:text-lime-400">Prove it.</span></h1>
+        <p class="muted max-w-2xl mx-auto text-base">A building gets a retrofit — a heat pump, new insulation, smarter
+          controls — sold on a promised cut in electricity. But a milder winter can fake that saving. WattWitness settles
+          it: upload the meter data, and it measures the real, weather-adjusted saving the way an energy auditor would,
+          re-checks every number independently, and signs a result the owner and the contractor can both trust.</p>
         <div class="flex flex-wrap justify-center gap-x-7 gap-y-2 pt-1 text-sm font-medium">
           <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l8 4.3v9.4L12 21l-8-4.8V6.8z"/><path d="M4 7l8 4.3L20 7M12 11.3V21"/></svg>Isolated sandboxes</span>
           <span class="inline-flex items-center gap-2"><svg class="w-4 h-4 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>Every key number re-checked</span>
@@ -113,16 +113,16 @@
       <section class="card p-5 sm:p-6">
         <div class="flex items-start gap-3">
           <span class="step-num">1</span>
-          <div><h2 class="step-title">Choose your data</h2><p class="text-sm muted">Use the sample building, or upload a CSV of your own (any data works).</p></div>
+          <div><h2 class="step-title">Choose your data</h2><p class="text-sm muted">Try the sample building below, or upload your own meter readings as a CSV.</p></div>
         </div>
         <div class="grid sm:grid-cols-2 gap-3 mt-4">
           <button id="pickDemo" class="tile">
-            <svg class="w-6 h-6 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 21V9h5a1 1 0 0 1 1 1v11M3 21h18M7 8h3M7 12h3M7 16h3M17 13h0M17 17h0"/></svg><span class="font-medium">Sample: housing co-op heat pump retrofit</span>
+            <svg class="w-6 h-6 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 21V9h5a1 1 0 0 1 1 1v11M3 21h18M7 8h3M7 12h3M7 16h3M17 13h0M17 17h0"/></svg><span class="font-medium">Sample building — co-op heat-pump retrofit</span>
             <span class="text-sm muted">Stockholm (SE3) · daily meter 2024–2026 · outdoor temperature · spot price</span>
           </button>
           <label id="pickUpload" class="tile cursor-pointer">
-            <svg class="w-6 h-6 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></svg><span class="font-medium">Upload a CSV</span>
-            <span class="text-sm muted">Up to 20 MB. It is only ever opened inside a sandbox.</span>
+            <svg class="w-6 h-6 seal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></svg><span class="font-medium">Upload your own</span>
+            <span class="text-sm muted">Your meter data as a CSV, up to 20 MB. Only ever opened inside a sandbox.</span>
             <input id="file" type="file" accept=".csv" class="hidden" />
           </label>
         </div>
@@ -195,11 +195,12 @@
       <section class="card p-5 sm:p-6 border-red-200 dark:border-red-900/70">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="max-w-2xl">
-            <h2 class="text-lg font-semibold inline-flex items-center gap-2"><svg class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="7.5" width="11" height="10" rx="2"/><path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3"/><circle cx="10" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="1.1" fill="currentColor" stroke="none"/></svg>Autonomous AI hacker</h2>
-            <p class="text-sm muted mt-1">An AI model writes its own attack code, live, for five goals: escape, steal secrets,
-              send data out, leave something behind, and slow the server down. All five run at once, each in its own sandbox.</p>
+            <h2 class="text-lg font-semibold inline-flex items-center gap-2"><svg class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="7.5" width="11" height="10" rx="2"/><path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3"/><circle cx="10" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="1.1" fill="currentColor" stroke="none"/></svg>Autonomous red-team agent</h2>
+            <p class="text-sm muted mt-1">An LLM red-teamer generates novel exploit code for five objectives — container
+              escape, credential disclosure, data exfiltration, persistence, and resource exhaustion — executed concurrently,
+              each in its own isolated sandbox. Host integrity is re-verified after every run.</p>
           </div>
-          <button id="redteam" class="btn btn-danger">Unleash the AI hacker</button>
+          <button id="redteam" class="btn btn-danger">Launch red-team run</button>
         </div>
         <div id="redteamOut" class="grid md:grid-cols-2 lg:grid-cols-3 gap-3 mt-5 text-sm"></div>
         <div id="redteamSummary" class="mt-4 text-sm"></div>

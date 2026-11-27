@@ -164,10 +164,11 @@ function renderSidebar() {
 }
 
 function node(icon, title, sub, on, note = "") {
+  const info = note ? `<button type="button" class="shrink-0 text-slate-400 hover:text-lime-500 dark:hover:text-lime-400 cursor-help" title="${esc(note)}" aria-label="${esc(note)}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></button>` : "";
   return `<div class="node ${on ? "node-on" : ""}">
-    <div class="flex items-center gap-2"><span class="seal shrink-0">${icon}</span><span class="font-medium text-sm">${title}</span>
+    <div class="flex items-center gap-2"><span class="seal shrink-0">${icon}</span><span class="font-medium text-sm">${title}</span>${info}
       ${on ? '<span class="ml-auto w-2 h-2 rounded-full bg-lime-400 pulse-dot"></span>' : ""}</div>
-    <div class="text-xs muted mt-1">${sub}</div>${note ? `<div class="text-[11px] muted mt-1">${note}</div>` : ""}</div>`;
+    <div class="text-xs muted mt-1">${sub}</div></div>`;
 }
 
 function conn(label, on) {
@@ -340,7 +341,7 @@ const STEPS = [
 ];
 const STEP_KEYS = STEPS.map((s) => s.key);
 const TASK_CHIP = {
-  waiting: ["chip-blue", "AI is writing code"], queued: ["chip-gray", "Queued: VM busy"], running: ["chip-blue", "Running in a sandbox"],
+  waiting: ["chip-blue", "Writing code"], queued: ["chip-gray", "Queued: VM busy"], running: ["chip-blue", "Running in a sandbox"],
   fixing: ["chip-amber", "Fixing an error"], blocked: ["chip-amber", "Unsafe code blocked"], done: ["chip-green", "Done"],
   failed: ["chip-red", "Failed"],
 };
@@ -938,11 +939,11 @@ $("byoRun").addEventListener("click", async () => {
   }
 });
 
-// ---------- the AI hacker (red team) ----------
+// ---------- autonomous red-team agent ----------
 $("redteam").addEventListener("click", () => {
   const box = $("redteamOut");
   box.innerHTML = "";
-  $("redteamSummary").innerHTML = '<span class="muted">The AI is writing its attacks…</span>';
+  $("redteamSummary").innerHTML = '<span class="muted">Red-team agent generating exploit code…</span>';
   $("redteam").disabled = true;
   resetLive();
   const lanes = {};
@@ -952,7 +953,7 @@ $("redteam").addEventListener("click", () => {
       c = document.createElement("div");
       c.id = `rt-${g}`;
       c.className = "rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2";
-      c.innerHTML = '<div class="goal font-medium"></div><div class="state text-xs muted">Writing the attack…</div><div class="lanes space-y-2"></div><div class="body space-y-2"></div>';
+      c.innerHTML = '<div class="goal font-medium"></div><div class="state text-xs muted">Generating exploit…</div><div class="lanes space-y-2"></div><div class="body space-y-2"></div>';
       box.appendChild(c);
       lanes[g] = {};
     }
@@ -979,7 +980,7 @@ $("redteam").addEventListener("click", () => {
     }
     if (ev.type === "redteam_attack") {
       const c = card(ev.goal_id);
-      c.querySelector(".goal").textContent = `🎯 ${ev.goal}`;
+      c.querySelector(".goal").textContent = ev.goal;
       c.querySelector(".state").textContent = ev.declined ? (ev.no_reply ? "The model returned no attack." : "The model refused to write this attack.") : "Attack written.";
       if (!ev.declined) {
         c.querySelector(".body").innerHTML = `<details><summary class="cursor-pointer text-xs text-red-600 dark:text-red-400">The attack code the AI wrote</summary><pre class="code mt-1">${esc(ev.code)}</pre></details>`;
